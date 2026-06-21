@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<!--
+  index.html  ·  Das Grundgeruest von Sparkurs
+  ------------------------------------------------------------------
+  Diese Datei ist die einzige HTML-Seite der App. Sie enthaelt:
+    - im <head>: alle PWA-Einstellungen (Icon, Farbe, Manifest, iPhone)
+    - im <body>: das Geruest aller Ansichten ("Views") und die Navigation
+  Inhalte (Zahlen, Listen) werden von js/ui.js zur Laufzeit eingefuellt.
+
+  Reihenfolge der Skripte am Ende ist wichtig:
+    defaults -> storage -> budget -> charts -> ui -> app
+  (jede Datei baut auf den vorherigen auf; app.js startet alles)
+-->
+<html lang="de-CH">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sparen an Shiii – dein Budget im Griff</title>
+  <meta name="description" content="Persoenliche Budget-App: Tagesbudget, Sparziel, Abos und Statistiken. Laeuft offline auf deinem Geraet.">
+
+  <!-- PWA / Homescreen -->
+  <meta name="theme-color" content="#0c1118">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Shiii">
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ====================== KOPFZEILE ====================== -->
+<header class="topbar">
+  <div class="brand">
+    <img src="assets/logo.svg" alt="" class="brand-logo" width="32" height="32">
+    <span class="brand-name">Sparen an <span class="brand-accent">Shiii</span></span>
+  </div>
+  <div class="topbar-right">
+    <span class="month-pill" id="top-month">Monat</span>
+    <button class="icon-btn" id="btn-settings" data-icon="settings" aria-label="Einstellungen" title="Einstellungen"></button>
+  </div>
+</header>
+
+<!-- ====================== HAUPTBEREICH ====================== -->
+<!-- Die Sidebar erscheint nur auf grossen Bildschirmen (Desktop). -->
+<div class="layout">
+
+  <!-- Seitennavigation (Desktop) -->
+  <nav class="sidebar" aria-label="Hauptnavigation">
+    <button class="side-link is-active" data-view="heute"><span class="ico" data-icon="home"></span><span>Heute</span></button>
+    <button class="side-link" data-view="verlauf"><span class="ico" data-icon="list"></span><span>Verlauf</span></button>
+    <button class="side-link" data-view="ziele"><span class="ico" data-icon="target"></span><span>Ziele</span></button>
+    <button class="side-link" data-view="abos"><span class="ico" data-icon="repeat"></span><span>Abos</span></button>
+    <button class="side-link" data-view="statistik"><span class="ico" data-icon="chart"></span><span>Statistik</span></button>
+    <button class="side-link" data-view="einstellungen"><span class="ico" data-icon="settings"></span><span>Einstellungen</span></button>
+    <button class="side-add" id="btn-add-desktop"><span class="ic-pre" data-icon="plus"></span>Ausgabe</button>
+  </nav>
+
+  <!-- Inhaltsbereich: alle Views liegen hier, nur eine ist sichtbar -->
+  <main class="content" id="content">
+
+    <!-- ---------- HEUTE (Dashboard) ---------- -->
+    <section class="view is-active" id="view-heute">
+      <!-- Hero: Heute noch verfuegbar -->
+      <div class="card hero" id="hero-card">
+        <div class="hero-label">Heute noch verfügbar</div>
+        <div class="hero-amount"><span id="hd-heute">0</span><span class="cur">CHF</span></div>
+        <div class="ampel-bar"><div class="ampel-fill" id="hd-ampelbar"></div></div>
+        <div class="hero-sub">Tagesbudget heute: <strong id="hd-tagesbudget">0</strong> CHF · noch <span id="hd-resttage">0</span> Tage im Monat</div>
+      </div>
+
+      <!-- Tempo-Warnung -->
+      <div class="card pace" id="pace-card">
+        <div class="pace-icon" id="hd-pace-icon">⏱️</div>
+        <div class="pace-text" id="hd-pace">Tempo wird berechnet …</div>
+      </div>
+
+      <!-- Abo-Erinnerung (nur sichtbar wenn bald eine Verlaengerung ansteht) -->
+      <div class="card alert hidden" id="aboalert-card">
+        <div class="alert-icon" data-icon="bell"></div>
+        <div><div class="alert-title">Abo-Verlängerung steht an</div><div class="alert-text" id="hd-aboalert"></div></div>
+      </div>
+
+      <!-- kleine Monatszahlen -->
+      <div class="mini-grid">
+        <div class="card mini"><div class="mini-label">Diesen Monat ausgegeben</div><div class="mini-val"><span id="hd-monat">0</span> CHF</div></div>
+        <div class="card mini"><div class="mini-label">Noch verfügbar (Monat)</div><div class="mini-val"><span id="hd-rest">0</span> CHF</div></div>
+      </div>
+
+      <!-- Sparziel (Hauptziel) -->
+      <div class="card goal-mini" id="goal-mini-card">
+        <div class="row-between">
+          <div class="goal-mini-name" id="hd-zielname">Sparziel</div>
+          <div class="goal-mini-pct" id="hd-zielpct">0%</div>
+        </div>
+        <div class="progress"><div class="progress-fill" id="hd-zielbar"></div></div>
+        <div class="goal-mini-text" id="hd-zieltext">0 / 0 CHF</div>
+        <button class="btn btn-ghost btn-block" id="btn-tagesrest"><span class="ic-pre" data-icon="coins"></span>Tagesrest ins Sparziel verschieben</button>
+      </div>
+
+      <!-- letzte Ausgaben -->
+      <div class="card">
+        <div class="row-between section-head">
+          <h2>Letzte Ausgaben</h2>
+          <button class="link-btn" data-view="verlauf">alle anzeigen →</button>
+        </div>
+        <div id="hd-letzte" class="entry-list compact"></div>
+      </div>
+    </section>
+
+    <!-- ---------- VERLAUF ---------- -->
+    <section class="view" id="view-verlauf">
+      <h1 class="view-title">Verlauf</h1>
+      <div class="filter-row" id="vl-filter"></div>
+      <div id="vl-liste" class="entry-list"></div>
+    </section>
+
+    <!-- ---------- ZIELE ---------- -->
+    <section class="view" id="view-ziele">
+      <div class="row-between">
+        <h1 class="view-title">Sparziele</h1>
+        <button class="btn btn-accent btn-sm" id="btn-add-ziel">＋ Ziel</button>
+      </div>
+      <div id="zl-liste"></div>
+    </section>
+
+    <!-- ---------- ABOS ---------- -->
+    <section class="view" id="view-abos">
+      <div class="row-between">
+        <h1 class="view-title">Abo-Radar</h1>
+        <button class="btn btn-accent btn-sm" id="btn-add-abo">＋ Abo</button>
+      </div>
+      <div class="card abo-total">
+        <div class="mini-label">Abos pro Monat (aktiv)</div>
+        <div class="abo-total-val"><span id="ab-total">0</span> CHF</div>
+        <div class="abo-total-sub" id="ab-sub"></div>
+      </div>
+      <div id="ab-liste"></div>
+    </section>
+
+    <!-- ---------- STATISTIK ---------- -->
+    <section class="view" id="view-statistik">
+      <h1 class="view-title">Statistik</h1>
+
+      <div class="stat-grid">
+        <div class="card">
+          <div class="section-head"><h2>Monatsverlauf</h2></div>
+          <div class="chart-wrap" id="st-line"></div>
+          <div class="chart-legend">
+            <span><i class="dot" style="background:var(--gold)"></i> Soll (gleichmässig)</span>
+            <span><i class="dot" style="background:var(--accent)"></i> Tatsächlich</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-head"><h2>Nach Kategorie</h2></div>
+          <div class="chart-wrap" id="st-donut"></div>
+          <div class="chart-legend col" id="st-legende"></div>
+        </div>
+      </div>
+
+      <div class="mini-grid">
+        <div class="card mini streak"><div class="mini-label"><span class="ic-pre" data-icon="flame"></span>Streak</div><div class="mini-val"><span id="st-streak">0</span> Tage</div><div class="mini-foot">in Folge unter Budget</div></div>
+        <div class="card mini"><div class="mini-label">Ø pro Tag</div><div class="mini-val"><span id="st-avgday">0</span> CHF</div><div class="mini-foot">diesen Monat</div></div>
+      </div>
+      <div class="mini-grid">
+        <div class="card mini"><div class="mini-label">Ø pro Woche</div><div class="mini-val"><span id="st-avgweek">0</span> CHF</div></div>
+        <div class="card mini" id="hoch-card"><div class="mini-label">Hochrechnung Monat</div><div class="mini-val"><span id="st-hoch">0</span> CHF</div><div class="mini-foot" id="st-hoch-foot"></div></div>
+      </div>
+      <div class="card" id="vormonat-card">
+        <div class="mini-label">Vergleich zum Vormonat</div>
+        <div class="mini-val" id="st-vormonat">—</div>
+      </div>
+    </section>
+
+    <!-- ---------- EINSTELLUNGEN ---------- -->
+    <section class="view" id="view-einstellungen">
+      <h1 class="view-title">Einstellungen</h1>
+
+      <div class="card">
+        <h2 class="section-head">Geld</h2>
+        <label class="field"><span>Monatslohn netto (CHF)</span><input type="number" id="se-lohn" inputmode="decimal" min="0" step="50"></label>
+        <label class="field"><span>Fixkosten pro Monat (CHF)</span><input type="number" id="se-fixkosten" inputmode="decimal" min="0" step="10"></label>
+        <label class="switch-row"><span>Abo-Summe zu den Fixkosten dazurechnen<small>Nur einschalten, wenn deine Fixkosten die Abos noch NICHT enthalten.</small></span>
+          <input type="checkbox" id="se-aboswitch" class="switch"></label>
+      </div>
+
+      <div class="card">
+        <h2 class="section-head">Kategorien</h2>
+        <div id="se-kategorien" class="cat-edit-list"></div>
+        <div class="add-inline">
+          <input type="text" id="se-newcat" placeholder="Neue Kategorie …" maxlength="20">
+          <button class="btn btn-accent btn-sm" id="se-addcat">＋</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-head">Daten &amp; Backup</h2>
+        <p class="muted">Alle Daten liegen nur auf diesem Gerät. Mach ab und zu ein Backup.</p>
+        <button class="btn btn-ghost btn-block" id="se-export"><span class="ic-pre" data-icon="download"></span>Backup exportieren (JSON)</button>
+        <label class="btn btn-ghost btn-block" for="se-importfile"><span class="ic-pre" data-icon="upload"></span>Backup importieren</label>
+        <input type="file" id="se-importfile" accept="application/json,.json" hidden>
+        <button class="btn btn-danger btn-block" id="se-reset"><span class="ic-pre" data-icon="trash"></span>Alle Daten zurücksetzen</button>
+      </div>
+
+      <div class="card about">
+        <img src="assets/logo.svg" alt="" width="40" height="40">
+        <div><strong>Sparen an Shiii</strong> · Version <span id="se-version">1.0</span><br><span class="muted">Manoa Verner · 2026 · läuft offline</span></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ====================== SCHWEBENDER + KNOPF (mobil) ====================== -->
+<button class="fab" id="fab-add" data-icon="plus" aria-label="Ausgabe erfassen"></button>
+
+<!-- ====================== UNTERE NAVIGATION (mobil) ====================== -->
+<nav class="bottomnav" aria-label="Hauptnavigation">
+  <button class="tab is-active" data-view="heute"><span class="ico" data-icon="home"></span><span class="lbl">Heute</span></button>
+  <button class="tab" data-view="verlauf"><span class="ico" data-icon="list"></span><span class="lbl">Verlauf</span></button>
+  <button class="tab" data-view="ziele"><span class="ico" data-icon="target"></span><span class="lbl">Ziele</span></button>
+  <button class="tab" data-view="abos"><span class="ico" data-icon="repeat"></span><span class="lbl">Abos</span></button>
+  <button class="tab" data-view="statistik"><span class="ico" data-icon="chart"></span><span class="lbl">Statistik</span></button>
+</nav>
+
+<!-- ====================== AUSGABE ERFASSEN (Bottom Sheet) ====================== -->
+<div class="sheet-backdrop" id="sheet-backdrop"></div>
+<div class="sheet" id="sheet-erfassen" role="dialog" aria-modal="true" aria-label="Ausgabe erfassen">
+  <div class="sheet-handle"></div>
+  <h2 class="sheet-title" id="sheet-title">Ausgabe erfassen</h2>
+  <div class="amount-input">
+    <input type="number" id="er-betrag" inputmode="decimal" placeholder="0" min="0" step="0.05" autocomplete="off">
+    <span class="amount-cur">CHF</span>
+  </div>
+  <div class="cat-chips" id="er-kategorien"></div>
+  <input type="text" id="er-notiz" class="note-input" placeholder="Notiz (optional)" maxlength="60">
+  <div class="sheet-actions">
+    <button class="btn btn-ghost" id="er-cancel">Abbrechen</button>
+    <button class="btn btn-accent" id="er-save">Speichern</button>
+  </div>
+</div>
+
+<!-- ====================== GENERISCHES MODAL (Ziele/Abos/Einzahlung) ====================== -->
+<div class="modal-backdrop" id="modal-backdrop"></div>
+<div class="modal" id="modal" role="dialog" aria-modal="true">
+  <h2 class="modal-title" id="modal-title">Titel</h2>
+  <div class="modal-body" id="modal-body"></div>
+  <div class="modal-actions" id="modal-actions"></div>
+</div>
+
+<!-- ====================== BESTAETIGUNGS-TOAST ====================== -->
+<div class="toast" id="toast"><span class="toast-check" data-icon="tick"></span><span id="toast-text">Gespeichert</span></div>
+
+<!-- ====================== SKRIPTE ====================== -->
+<script src="js/defaults.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/budget.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

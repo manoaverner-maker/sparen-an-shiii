@@ -1,0 +1,59 @@
+/* =====================================================================
+   icons.js  ·  Sauberes Icon-Set (Inline-SVG, kein Emoji)
+   =====================================================================
+   WOFUER IST DIESE DATEI DA?
+   Statt der bunten Standard-Emojis benutzt die App ein einheitliches Set
+   aus schlanken Linien-Icons (im Stil moderner App-Icons). Sie sind als
+   SVG direkt hier eingebettet:
+     - bleiben offline verfuegbar (kein Nachladen aus dem Internet)
+     - uebernehmen automatisch die Textfarbe (stroke="currentColor"),
+       passen sich also Akzent-/Kategoriefarben an
+     - sind auf jedem Bildschirm gestochen scharf
+
+   BENUTZUNG:  SK.icon('home')  ->  fertiges <svg>…</svg> als Text
+   Eine neue Form hinzufuegen: einen Eintrag in SK.ICONS ergaenzen
+   (nur der Inhalt zwischen <svg> und </svg>, viewBox ist 0 0 24 24).
+   ===================================================================== */
+
+const SK_icons = window.SK;
+
+/* Die reinen Pfad-Inhalte je Icon (viewBox 0 0 24 24). */
+SK.ICONS = {
+  /* --- Navigation --- */
+  home:     '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/><path d="M9.5 21v-6h5v6"/>',
+  list:     '<path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><circle cx="4" cy="6" r="1.1"/><circle cx="4" cy="12" r="1.1"/><circle cx="4" cy="18" r="1.1"/>',
+  target:   '<circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.7" fill="currentColor" stroke="none"/>',
+  repeat:   '<path d="M17 2.5l3 3-3 3"/><path d="M4 11.5V10a4 4 0 0 1 4-4h12"/><path d="M7 21.5l-3-3 3-3"/><path d="M20 12.5V14a4 4 0 0 1-4 4H4"/>',
+  chart:    '<path d="M3.5 21h17"/><rect x="6" y="11" width="3.2" height="7" rx="1"/><rect x="11.4" y="6.5" width="3.2" height="11.5" rx="1"/><rect x="16.8" y="14" width="3.2" height="4" rx="1"/>',
+  settings: '<path d="M4 6.5h9"/><path d="M17 6.5h3"/><circle cx="15" cy="6.5" r="2"/><path d="M4 12.5h3"/><path d="M11 12.5h9"/><circle cx="9" cy="12.5" r="2"/><path d="M4 18.5h9"/><path d="M17 18.5h3"/><circle cx="15" cy="18.5" r="2"/>',
+
+  /* --- Aktionen / Status --- */
+  plus:     '<path d="M12 5v14"/><path d="M5 12h14"/>',
+  tick:     '<path d="M5 12.5l4.2 4.2L19 7"/>',
+  bell:     '<path d="M18 8.5a6 6 0 0 0-12 0c0 6.5-2.5 8.5-2.5 8.5h17S18 15 18 8.5"/><path d="M13.7 20.5a2 2 0 0 1-3.4 0"/>',
+  check:    '<circle cx="12" cy="12" r="9"/><path d="M8.3 12.3l2.6 2.6 4.8-5.3"/>',
+  clock:    '<circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.2 1.9"/>',
+  alert:    '<path d="M10.3 4.4 2.6 17.8A1.5 1.5 0 0 0 3.9 20h16.2a1.5 1.5 0 0 0 1.3-2.2L13.7 4.4a1.6 1.6 0 0 0-3.4 0Z"/><path d="M12 9.5v4"/><path d="M12 16.6h.01"/>',
+  coins:    '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v3c0 1.7 3.1 3 7 3s7-1.3 7-3v-3"/>',
+  pencil:   '<path d="M16.4 4.6a1.9 1.9 0 0 1 2.7 2.7L8.5 17.9 4 19.4l1.5-4.5Z"/><path d="M14.5 6.5l2.7 2.7"/>',
+  trash:    '<path d="M4 7h16"/><path d="M9 7V4.8h6V7"/><path d="M6.2 7l1 12.5a1 1 0 0 0 1 .9h7.6a1 1 0 0 0 1-.9L18 7"/><path d="M10.5 11v5.5M13.5 11v5.5"/>',
+  filter:   '<path d="M4 5.5h16"/><path d="M7 12h10"/><path d="M10 18.5h4"/>',
+  wallet:   '<path d="M3.5 7.5a2 2 0 0 1 2-2H17a1.5 1.5 0 0 1 1.5 1.5v1"/><path d="M3.5 7.5V17a2 2 0 0 0 2 2H19a1.5 1.5 0 0 0 1.5-1.5V11A1.5 1.5 0 0 0 19 9.5H5.5a2 2 0 0 1-2-2Z"/><circle cx="16" cy="14.2" r="1.1" fill="currentColor" stroke="none"/>',
+  flame:    '<path d="M12 3s5 3.4 5 9a5 5 0 0 1-10 0c0-2 1-3.3 2-4.3 0 1.4 1 2.2 1.8 2.2C9.6 8.2 12 6.6 12 3Z"/>',
+  download: '<path d="M12 4v10.5"/><path d="M8 11l4 4 4-4"/><path d="M5 19.5h14"/>',
+  upload:   '<path d="M12 20V9.5"/><path d="M8 13l4-4 4 4"/><path d="M5 4.5h14"/>',
+
+  /* --- Ausgaben-Kategorien --- */
+  food:     '<path d="M6 3v6.5a2 2 0 0 0 4 0V3"/><path d="M8 9.5V21"/><path d="M16.5 3c-1.6 0-2.6 1.7-2.6 4.2s1 4.3 2.6 4.3"/><path d="M16.5 3v18"/>',
+  box:      '<path d="M12 3 4 7v10l8 4 8-4V7Z"/><path d="M4 7l8 4 8-4"/><path d="M12 11v10"/>',
+  glass:    '<path d="M4.5 5h15l-7.5 8z"/><path d="M12 13v6"/><path d="M8.5 19h7"/>',
+  tram:     '<rect x="6" y="3" width="12" height="13.5" rx="3"/><path d="M6 11h12"/><circle cx="9.5" cy="13.6" r="0.8" fill="currentColor" stroke="none"/><circle cx="14.5" cy="13.6" r="0.8" fill="currentColor" stroke="none"/><path d="M9 16.5l-1.8 2.2M15 16.5l1.8 2.2"/>',
+  tag:      '<path d="M3.6 12.6 11 5.2h6.4v6.4L10 19a2 2 0 0 1-2.8 0L3.6 15.4a2 2 0 0 1 0-2.8Z"/><circle cx="14.4" cy="8.6" r="1.2"/>'
+};
+
+/* Baut aus einem Namen ein fertiges <svg>. cls = optionale CSS-Klasse(n). */
+SK.icon = function (name, cls) {
+  const inhalt = SK.ICONS[name] || SK.ICONS.tag;
+  return '<svg class="ic ' + (cls || '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+       + 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inhalt + '</svg>';
+};
