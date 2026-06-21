@@ -161,7 +161,10 @@ SK.budget.dayInfo = function (state, d) {
 
   // (1)+(2) Sparrate, (3) Verfuegbar
   const sparrate = SK.budget.totalMonthlyRate(state, d);
-  const verfuegbar = state.settings.lohn - SK.budget.fixkostenEffektiv(state) - sparrate;
+  // Optionale Schulden-Rate: wie die Sparrate VORAB reservieren (separater Topf).
+  // Die einzelnen Schulden-Teilzahlungen selbst zaehlen NICHT ins Tagesbudget.
+  const schuldenRate = SK.budget.schuldenRate(state);
+  const verfuegbar = state.settings.lohn - SK.budget.fixkostenEffektiv(state) - sparrate - schuldenRate;
 
   // (4) abgeflossen vor dem betrachteten Tag, und (heute) am Tag selbst
   let abgeflossenVorher = 0;
@@ -181,6 +184,7 @@ SK.budget.dayInfo = function (state, d) {
   return {
     verfuegbar: verfuegbar,
     sparrate: sparrate,
+    schuldenRate: schuldenRate,
     tagesbudget: tagesbudget,
     abflussHeute: abflussHeute,           // alles (Ausgaben + Sparen) heute
     heuteNochVerfuegbar: tagesbudget - abflussHeute,
@@ -239,6 +243,7 @@ SK.budget.compute = function (state, heute) {
     lohn: state.settings.lohn,
     fixkosten: SK.budget.fixkostenEffektiv(state),
     sparrate: day.sparrate,
+    schuldenRate: day.schuldenRate,
     verfuegbarMonat: day.verfuegbar,
     // Tag / Monat
     tag: tag,
@@ -350,4 +355,46 @@ SK.budget.byCategory = function (state, d) {
 SK.budget.avgPerDay = function (state, d) {
   const tag = d.getDate();
   return tag > 0 ? SK.budget.spendMonth(state, d) / tag : 0;
+};
+
+/* =====================================================================
+   TEIL 9: Schulden / Sonderausgaben
+   =====================================================================
+   Eigener Topf, getrennt vom Tagesbudget. Hier nur die reinen Rechnungen
+   rund um die Schulden-Posten.
+   --------------------------------------------------------------------- */
+
+/* Monatliche Schulden-Rate, die vorab reserviert wird (0 wenn ausgeschaltet). */
+SK.budget.schuldenRate = function (state) {
+  return state.settings.schuldenRateAktiv ? (state.settings.schuldenRate || 0) : 0;
+};
+
+/* Bereits bezahlt auf EINEN Posten = Summe seiner Teilzahlungen. */
+SK.budget.debtPaid = function (debt) {
+  return (debt.zahlungen || []).reduce(function (s, z) { return s + z.betrag; }, 0);
+};
+
+/* Noch offener Betrag eines Postens (nie negativ). */
+SK.budget.debtOpen = function (debt) {
+  return Math.max(0, debt.gesamt - SK.budget.debtPaid(debt));
+};
+
+/* Summe aller noch OFFENEN Schulden (nur nicht-erledigte Posten). */
+SK.budget.debtsTotalOpen = function (state) {
+  let summe = 0;
+  for (const d of state.debts) { if (!d.erledigt) summe += SK.budget.debtOpen(d); }
+  return summe;
+};
+
+/* Wie viel wurde in einem Monat insgesamt auf Schulden abbezahlt?
+   (ueber alle Posten, auch bereits erledigte). */
+SK.budget.debtsPaidThisMonth = function (state, d) {
+  const mk = SK.budget.monthKey(d);
+  let summe = 0;
+  for (const posten of state.debts) {
+    for (const z of (posten.zahlungen || [])) {
+      if (z.datum.slice(0, 7) === mk) summe += z.betrag;
+    }
+  }
+  return summe;
 };

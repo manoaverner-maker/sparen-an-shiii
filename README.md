@@ -29,7 +29,8 @@ Die App läuft komplett **offline** auf deinem Gerät, speichert alles **lokal**
 | **Verlauf** | Alle Buchungen, nach Tag gruppiert, filterbar, einzeln bearbeit- und löschbar. |
 | **Ziele** | Mehrere Sparziele mit Fortschrittsbalken, benötigter Sparrate, Einzahlen-Knopf. |
 | **Abos** | Abo-Radar mit Gesamtsumme, Erinnerung 3 Tage vor Verlängerung, aktiv/gekündigt-Schalter. |
-| **Statistik** | Monatsverlauf (Soll gegen Ist), Tortendiagramm nach Kategorie, Streak, Ø pro Tag/Woche, Hochrechnung, Vormonatsvergleich. |
+| **Schulden** | Einmalige Schulden/Sonderausgaben als eigener Topf: Posten mit Teilzahlungen, Fortschritt, Fälligkeit, Archiv – getrennt vom Tagesbudget. |
+| **Statistik** | Monatsverlauf (Soll gegen Ist), Tortendiagramm nach Kategorie, Streak, Ø pro Tag/Woche, Hochrechnung, Vormonatsvergleich, Schulden-Übersicht. |
 | **Einstellungen** | Lohn, Fixkosten, Kategorien, Backup-Export/Import, Zurücksetzen. |
 
 ---
@@ -127,7 +128,7 @@ Die ganze Logik steht ausführlich kommentiert in [`js/budget.js`](js/budget.js)
 
 1. **Fehlender Sparbetrag** = Sparziel − bereits gespart (pro Ziel).
 2. **Monatliche Sparrate** = fehlender Betrag ÷ Monate bis zum Zieldatum (Summe aller Ziele).
-3. **Verfügbar diesen Monat** = Lohn − Fixkosten − Sparrate.
+3. **Verfügbar diesen Monat** = Lohn − Fixkosten − Sparrate − (optionale Schulden-Rate).
 4. **Bereits ausgegeben** = Summe der Buchungen dieses Monats vor heute.
 5. **Noch verfügbar (Tagesbeginn)** = (3) − (4).
 6. **Tagesbudget heute** = (5) ÷ verbleibende Tage im Monat (heute mitgezählt).
@@ -140,6 +141,27 @@ sinkt es sichtbar. Genau dieser Effekt soll dir helfen, bewusster mit Geld umzug
 > (es ist ja nicht mehr zum Ausgeben da), taucht aber **nicht** in der Ausgaben-Statistik auf.
 
 ---
+
+## Schulden / Sonderausgaben
+
+Ein eigener Bereich für **einmalige grössere Verpflichtungen** (z.B. eine
+Werkstattrechnung), die dein normales Tagesbudget *nicht* verfälschen sollen.
+
+- **Posten anlegen:** Name, Gesamtbetrag, optional Fälligkeitsdatum und Notiz.
+  Optional „in X Raten aufteilen" – die App schlägt dir die monatliche Rate vor.
+- **Teilzahlungen** pro Posten erfassen; ein Fortschrittsbalken zeigt
+  *bezahlt / offen*. Ist ein Posten voll bezahlt, wandert er automatisch ins
+  (einklappbare) **Archiv**; du kannst ihn auch manuell auf „erledigt" setzen.
+- Oben siehst du die **Summe aller offenen Schulden**.
+
+**Trennung vom Tagesbudget (wichtig):** Diese Posten und ihre Teilzahlungen
+fliessen **nicht** ins Tagesbudget und **nicht** in die Pace-Warnung ein – es ist
+ein getrennter Topf. Eine einzelne 550-CHF-Zahlung färbt deinen Tag also nicht rot.
+
+Damit du den Abbau trotzdem realistisch einplanst, gibt es in den **Einstellungen**
+den Schalter **„Monatliche Schulden-Rate vom verfügbaren Geld abziehen"**. Ist er
+aktiv, wird der eingestellte Betrag – genau wie die Sparrate – *vor* der
+Tagesbudget-Berechnung vom verfügbaren Monatsgeld abgezogen.
 
 ## Neue Funktionen hinzufügen
 

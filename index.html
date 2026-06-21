@@ -54,6 +54,7 @@
     <button class="side-link" data-view="verlauf"><span class="ico" data-icon="list"></span><span>Verlauf</span></button>
     <button class="side-link" data-view="ziele"><span class="ico" data-icon="target"></span><span>Ziele</span></button>
     <button class="side-link" data-view="abos"><span class="ico" data-icon="repeat"></span><span>Abos</span></button>
+    <button class="side-link" data-view="schulden"><span class="ico" data-icon="receipt"></span><span>Schulden</span></button>
     <button class="side-link" data-view="statistik"><span class="ico" data-icon="chart"></span><span>Statistik</span></button>
     <button class="side-link" data-view="einstellungen"><span class="ico" data-icon="settings"></span><span>Einstellungen</span></button>
     <button class="side-add" id="btn-add-desktop"><span class="ic-pre" data-icon="plus"></span>Ausgabe</button>
@@ -141,6 +142,33 @@
       <div id="ab-liste"></div>
     </section>
 
+    <!-- ---------- SCHULDEN / SONDERAUSGABEN ---------- -->
+    <section class="view" id="view-schulden">
+      <div class="row-between">
+        <h1 class="view-title">Schulden / Sonderausgaben</h1>
+        <button class="btn btn-accent btn-sm" id="btn-add-debt">＋ Posten</button>
+      </div>
+
+      <!-- Summe aller offenen Schulden -->
+      <div class="card debt-total">
+        <div class="mini-label">Offene Schulden gesamt</div>
+        <div class="debt-total-val"><span id="sc-total">0</span> CHF</div>
+        <div class="abo-total-sub" id="sc-sub"></div>
+      </div>
+
+      <!-- Offene Posten -->
+      <div id="sc-liste"></div>
+
+      <!-- Archiv (erledigte Posten, einklappbar) -->
+      <div id="sc-archiv-wrap" class="hidden">
+        <button class="archiv-head" id="sc-archiv-toggle">
+          <span class="chev" data-icon="chevron"></span>
+          <span>Erledigt (<span id="sc-archiv-count">0</span>)</span>
+        </button>
+        <div id="sc-archiv" class="hidden"></div>
+      </div>
+    </section>
+
     <!-- ---------- STATISTIK ---------- -->
     <section class="view" id="view-statistik">
       <h1 class="view-title">Statistik</h1>
@@ -174,6 +202,11 @@
         <div class="mini-label">Vergleich zum Vormonat</div>
         <div class="mini-val" id="st-vormonat">—</div>
       </div>
+
+      <div class="mini-grid">
+        <div class="card mini"><div class="mini-label">Schulden gesamt</div><div class="mini-val"><span id="st-schulden">0</span> CHF</div><div class="mini-foot">noch offen</div></div>
+        <div class="card mini"><div class="mini-label">Diesen Monat abbezahlt</div><div class="mini-val"><span id="st-schulden-monat">0</span> CHF</div><div class="mini-foot">auf Schulden</div></div>
+      </div>
     </section>
 
     <!-- ---------- EINSTELLUNGEN ---------- -->
@@ -186,6 +219,13 @@
         <label class="field"><span>Fixkosten pro Monat (CHF)</span><input type="number" id="se-fixkosten" inputmode="decimal" min="0" step="10"></label>
         <label class="switch-row"><span>Abo-Summe zu den Fixkosten dazurechnen<small>Nur einschalten, wenn deine Fixkosten die Abos noch NICHT enthalten.</small></span>
           <input type="checkbox" id="se-aboswitch" class="switch"></label>
+      </div>
+
+      <div class="card">
+        <h2 class="section-head">Schulden-Rate</h2>
+        <label class="switch-row"><span>Monatliche Schulden-Rate vom verfügbaren Geld abziehen<small>Wird – wie die Sparrate – vor dem Tagesbudget reserviert. Einzelne Zahlungen verfälschen so dein Tagesbudget nicht.</small></span>
+          <input type="checkbox" id="se-schuldenswitch" class="switch"></label>
+        <label class="field" id="se-schuldenrate-wrap"><span>Schulden-Rate pro Monat (CHF)</span><input type="number" id="se-schuldenrate" inputmode="decimal" min="0" step="10"></label>
       </div>
 
       <div class="card">
@@ -224,6 +264,7 @@
   <button class="tab" data-view="verlauf"><span class="ico" data-icon="list"></span><span class="lbl">Verlauf</span></button>
   <button class="tab" data-view="ziele"><span class="ico" data-icon="target"></span><span class="lbl">Ziele</span></button>
   <button class="tab" data-view="abos"><span class="ico" data-icon="repeat"></span><span class="lbl">Abos</span></button>
+  <button class="tab" data-view="schulden"><span class="ico" data-icon="receipt"></span><span class="lbl">Schulden</span></button>
   <button class="tab" data-view="statistik"><span class="ico" data-icon="chart"></span><span class="lbl">Statistik</span></button>
 </nav>
 

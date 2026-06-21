@@ -19,7 +19,9 @@
    ===================================================================== */
 
 SK.ui = {};
-SK.ui.verlaufFilter = 'alle'; // aktueller Filter im Verlauf-Tab
+SK.ui.verlaufFilter = 'alle';   // aktueller Filter im Verlauf-Tab
+SK.ui.debtArchiveOpen = false;  // ist das Schulden-Archiv aufgeklappt?
+SK.ui.debtExpanded = {};        // welche Schulden-Posten zeigen ihre Zahlungsliste? (id -> true)
 
 /* ============ A) HELFER ============ */
 
@@ -300,6 +302,97 @@ SK.ui.renderAbos = function () {
   }).join('');
 };
 
+/* ---- SCHULDEN / SONDERAUSGABEN ---- */
+SK.ui.renderSchulden = function () {
+  // Summe aller offenen Schulden gross oben
+  const offen = SK.budget.debtsTotalOpen(SK.state);
+  SK.ui.countUp(document.getElementById('sc-total'), offen, 2);
+
+  const offenePosten = SK.state.debts.filter(function (d) { return !d.erledigt; });
+  let sub = offenePosten.length + (offenePosten.length === 1 ? ' offener Posten' : ' offene Posten');
+  if (SK.state.settings.schuldenRateAktiv) {
+    sub += ' · Rate ' + SK.ui.fmt(SK.state.settings.schuldenRate) + ' CHF/Monat eingeplant';
+  }
+  document.getElementById('sc-sub').textContent = sub;
+
+  // offene Posten
+  const liste = document.getElementById('sc-liste');
+  liste.innerHTML = offenePosten.length
+    ? offenePosten.map(function (d) { return SK.ui._debtCard(d, false); }).join('')
+    : '<div class="empty-hint">Keine offenen Posten. Tippe auf ＋ Posten, um z.B. eine Werkstattrechnung anzulegen.</div>';
+
+  // Archiv (erledigte Posten, einklappbar)
+  const erledigt = SK.state.debts.filter(function (d) { return d.erledigt; });
+  const wrap = document.getElementById('sc-archiv-wrap');
+  if (!erledigt.length) {
+    wrap.classList.add('hidden');
+  } else {
+    wrap.classList.remove('hidden');
+    document.getElementById('sc-archiv-count').textContent = erledigt.length;
+    document.querySelector('#sc-archiv-toggle .chev').classList.toggle('open', SK.ui.debtArchiveOpen);
+    const arch = document.getElementById('sc-archiv');
+    arch.classList.toggle('hidden', !SK.ui.debtArchiveOpen);
+    arch.innerHTML = erledigt.map(function (d) { return SK.ui._debtCard(d, true); }).join('');
+  }
+};
+
+/* Baut die Karte fuer EINEN Schulden-Posten (archived = im Archiv). */
+SK.ui._debtCard = function (d, archived) {
+  const paid = SK.budget.debtPaid(d);
+  const offen = SK.budget.debtOpen(d);
+  const pct = d.gesamt > 0 ? Math.min(100, (paid / d.gesamt) * 100) : 100;
+  const expanded = !!SK.ui.debtExpanded[d.id];
+
+  // Faelligkeit (optional)
+  let faellHtml = '';
+  if (d.faellig) {
+    const tage = Math.round((new Date(d.faellig + 'T00:00:00') - new Date(SK.dateKey() + 'T00:00:00')) / 86400000);
+    let txt, overdue = false;
+    if (tage < 0) { txt = 'überfällig seit ' + Math.abs(tage) + ' T'; overdue = true; }
+    else if (tage === 0) { txt = 'heute fällig'; overdue = true; }
+    else { txt = 'fällig in ' + tage + ' T'; }
+    faellHtml = '<span class="' + (overdue ? 'debt-overdue' : '') + '">' + SK.icon('clock', 'ic-sm') + ' ' + txt + '</span>';
+  }
+
+  // Zahlungsliste (aufklappbar)
+  let payHtml = '';
+  if (expanded) {
+    const zs = (d.zahlungen || []).slice().sort(function (a, b) { return a.datum < b.datum ? 1 : -1; });
+    payHtml = '<div class="pay-list">' + (zs.length
+      ? zs.map(function (z) {
+          return '<div class="pay-row"><span>' + SK.ui.dayLabel(z.datum) + (z.notiz ? ' · ' + SK.ui.esc(z.notiz) : '')
+            + '</span><span><b>' + SK.ui.fmt(z.betrag, 2) + ' CHF</b> '
+            + '<button data-act="delpay" data-debt="' + d.id + '" data-pay="' + z.id + '" title="Zahlung löschen">' + SK.icon('trash') + '</button></span></div>';
+        }).join('')
+      : '<div class="pay-row">Noch keine Teilzahlungen.</div>') + '</div>';
+  }
+
+  // Aktionen
+  let actions;
+  if (archived) {
+    actions = '<button class="btn btn-ghost btn-sm" data-act="reopendebt" data-debt="' + d.id + '">Wieder öffnen</button>'
+            + '<button class="btn btn-ghost btn-sm" data-act="deldebt" data-debt="' + d.id + '">Löschen</button>';
+  } else {
+    actions = '<button class="btn btn-accent btn-sm" data-act="addpay" data-debt="' + d.id + '">＋ Teilzahlung</button>'
+            + '<button class="btn btn-ghost btn-sm" data-act="editdebt" data-debt="' + d.id + '">Bearbeiten</button>'
+            + '<button class="btn btn-ghost btn-sm" data-act="donedebt" data-debt="' + d.id + '">Erledigt</button>';
+  }
+  const zCount = (d.zahlungen || []).length;
+
+  return '<div class="card goal-card debt-card' + (archived ? ' debt-archived' : '') + '" data-debt="' + d.id + '">'
+    + '<div class="row-between"><div class="goal-head-name">' + SK.icon('receipt', 'ic-pre') + SK.ui.esc(d.name) + '</div>'
+      + (archived ? '<span class="goal-badge">erledigt</span>' : '<span class="goal-mini-pct">' + Math.round(pct) + '%</span>') + '</div>'
+    + '<div class="progress"><div class="progress-fill" style="width:' + pct + '%"></div></div>'
+    + '<div class="goal-mini-text">bezahlt ' + SK.ui.fmt(paid) + ' / ' + SK.ui.fmt(d.gesamt) + ' CHF · offen ' + SK.ui.fmt(offen) + ' CHF</div>'
+    + '<div class="goal-meta">' + faellHtml
+      + (d.notiz ? '<span>' + SK.ui.esc(d.notiz) + '</span>' : '')
+      + (zCount ? '<button class="link-btn" data-act="togglepays" data-debt="' + d.id + '">' + (expanded ? 'Zahlungen ausblenden' : 'Zahlungen (' + zCount + ')') + '</button>' : '')
+    + '</div>'
+    + payHtml
+    + '<div class="goal-card-actions">' + actions + '</div>'
+  + '</div>';
+};
+
 /* ---- STATISTIK ---- */
 SK.ui.renderStatistik = function () {
   const heute = new Date();
@@ -332,6 +425,10 @@ SK.ui.renderStatistik = function () {
   document.getElementById('st-vormonat').textContent = vmHasData
     ? 'Letzter Monat: ' + SK.ui.fmt(vmSpend) + ' CHF · aktuell: ' + SK.ui.fmt(c.spendMonat) + ' CHF'
     : 'Noch keine Vergleichsdaten – kommt nächsten Monat.';
+
+  // Schulden-Block
+  document.getElementById('st-schulden').textContent = SK.ui.fmt(SK.budget.debtsTotalOpen(SK.state));
+  document.getElementById('st-schulden-monat').textContent = SK.ui.fmt(SK.budget.debtsPaidThisMonth(SK.state, heute));
 };
 
 /* ---- EINSTELLUNGEN ---- */
@@ -339,7 +436,14 @@ SK.ui.renderEinstellungen = function () {
   document.getElementById('se-lohn').value = SK.state.settings.lohn;
   document.getElementById('se-fixkosten').value = SK.state.settings.fixkosten;
   document.getElementById('se-aboswitch').checked = SK.state.settings.abosInFixkosten;
-  document.getElementById('se-version').textContent = '1.0';
+  // Schulden-Rate
+  const schuldenAktiv = SK.state.settings.schuldenRateAktiv;
+  document.getElementById('se-schuldenswitch').checked = schuldenAktiv;
+  const rateInput = document.getElementById('se-schuldenrate');
+  rateInput.value = SK.state.settings.schuldenRate;
+  rateInput.disabled = !schuldenAktiv;
+  document.getElementById('se-schuldenrate-wrap').style.opacity = schuldenAktiv ? '1' : '0.45';
+  document.getElementById('se-version').textContent = '1.1';
 
   document.getElementById('se-kategorien').innerHTML = SK.state.categories.map(function (c) {
     return '<div class="cat-edit"><span class="cat-edit-ico" style="color:' + c.color + '">' + SK.icon(c.icon) + '</span>'
@@ -364,6 +468,7 @@ SK.ui.render = function () {
   SK.ui.renderVerlauf();
   SK.ui.renderZiele();
   SK.ui.renderAbos();
+  SK.ui.renderSchulden();
   SK.ui.renderStatistik();
   SK.ui.renderEinstellungen();
 };

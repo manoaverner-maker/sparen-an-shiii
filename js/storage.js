@@ -39,6 +39,7 @@ function mergeDefaults(saved) {
   out.goals = saved.goals || def.goals;
   out.abos = saved.abos || def.abos;
   out.entries = saved.entries || [];
+  out.debts = saved.debts || [];
   out.dailyLog = saved.dailyLog || {};
   return out;
 }

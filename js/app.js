@@ -270,6 +270,86 @@ SK.app.openAboModal = function (abo) {
   SK.app.openModal(abo ? 'Abo bearbeiten' : 'Neues Abo', body, buttons);
 };
 
+/* ---- Schulden-Posten anlegen / bearbeiten ---- */
+SK.app.openDebtModal = function (debt) {
+  const d = debt || { name: '', gesamt: '', faellig: '', notiz: '' };
+  const neu = !debt;
+  let body =
+    '<label class="field"><span>Name</span><input type="text" id="m-name" value="' + SK.ui.esc(d.name) + '" placeholder="z.B. Werkstatt"></label>'
+    + '<label class="field"><span>Gesamtbetrag (CHF)</span><input type="number" id="m-gesamt" inputmode="decimal" value="' + d.gesamt + '" min="1" step="1"></label>'
+    + '<label class="field"><span>Fällig bis (optional)</span><input type="date" id="m-faellig" value="' + (d.faellig || '') + '"></label>'
+    + '<label class="field"><span>Notiz (optional)</span><input type="text" id="m-notiz" value="' + SK.ui.esc(d.notiz || '') + '" placeholder="z.B. Bremsen + Service"></label>';
+  // "in X Raten aufteilen" nur beim Neuanlegen
+  if (neu) {
+    body += '<label class="field"><span>In wie viele Raten aufteilen? (optional)</span><input type="number" id="m-raten" inputmode="numeric" min="1" placeholder="z.B. 3"></label>'
+          + '<div class="rate-hint" id="m-ratehint"></div>'
+          + '<label class="switch-row"><span>Vorgeschlagene Rate als monatliche Schulden-Rate setzen</span><input type="checkbox" id="m-setrate" class="switch"></label>';
+  }
+  SK.app.openModal(neu ? 'Neuer Posten' : 'Posten bearbeiten', body, [
+    { label: 'Abbrechen', cls: 'btn-ghost', onClick: SK.app.closeModal },
+    { label: 'Speichern', cls: 'btn-accent', onClick: function () {
+        const name = document.getElementById('m-name').value.trim();
+        const gesamt = parseFloat(document.getElementById('m-gesamt').value);
+        if (!name || !gesamt || gesamt <= 0) { SK.ui.toast('Bitte Name und Gesamtbetrag ausfüllen', true); return; }
+        const faellig = document.getElementById('m-faellig').value || null;
+        const notiz = document.getElementById('m-notiz').value.trim();
+        if (debt) {
+          debt.name = name; debt.gesamt = gesamt; debt.faellig = faellig; debt.notiz = notiz;
+        } else {
+          SK.state.debts.push({ id: SK.uid(), name: name, gesamt: gesamt, faellig: faellig, notiz: notiz, erledigt: false, zahlungen: [] });
+          // optional: vorgeschlagene Rate als monatliche Schulden-Rate uebernehmen
+          const ratenEl = document.getElementById('m-raten');
+          const setrateEl = document.getElementById('m-setrate');
+          const r = ratenEl ? parseInt(ratenEl.value, 10) : 0;
+          if (setrateEl && setrateEl.checked && r > 0) {
+            SK.state.settings.schuldenRate = Math.round((gesamt / r) * 100) / 100;
+            SK.state.settings.schuldenRateAktiv = true;
+          }
+        }
+        SK.app.refresh(); SK.app.closeModal(); SK.ui.toast('Posten gespeichert');
+      } }
+  ]);
+  // Live-Vorschlag fuer die Rate (nur beim Neuanlegen vorhanden)
+  if (neu) {
+    const upd = function () {
+      const g = parseFloat(document.getElementById('m-gesamt').value) || 0;
+      const r = parseInt(document.getElementById('m-raten').value, 10);
+      const hint = document.getElementById('m-ratehint');
+      hint.textContent = (g > 0 && r > 0) ? '≈ ' + SK.ui.fmt(g / r, 2) + ' CHF pro Monat über ' + r + ' Monate' : '';
+    };
+    document.getElementById('m-gesamt').addEventListener('input', upd);
+    document.getElementById('m-raten').addEventListener('input', upd);
+  }
+};
+
+/* ---- Teilzahlung auf einen Posten erfassen ---- */
+SK.app.openPaymentModal = function (debtId) {
+  const d = SK.state.debts.find(function (x) { return x.id === debtId; });
+  if (!d) return;
+  const offen = SK.budget.debtOpen(d);
+  const body =
+    '<p class="muted">' + SK.ui.esc(d.name) + ' · offen ' + SK.ui.fmt(offen, 2) + ' CHF</p>'
+    + '<label class="field"><span>Betrag (CHF)</span><input type="number" id="m-betrag" inputmode="decimal" placeholder="0" min="0.05" step="0.05"></label>'
+    + '<label class="field"><span>Datum</span><input type="date" id="m-datum" value="' + SK.dateKey() + '"></label>'
+    + '<label class="field"><span>Notiz (optional)</span><input type="text" id="m-notiz" placeholder="z.B. 1. Rate"></label>';
+  SK.app.openModal('Teilzahlung', body, [
+    { label: 'Abbrechen', cls: 'btn-ghost', onClick: SK.app.closeModal },
+    { label: 'Erfassen', cls: 'btn-accent', onClick: function () {
+        const betrag = parseFloat(document.getElementById('m-betrag').value);
+        if (!betrag || betrag <= 0) { SK.ui.toast('Bitte einen Betrag eingeben', true); return; }
+        const datum = document.getElementById('m-datum').value || SK.dateKey();
+        const notiz = document.getElementById('m-notiz').value.trim();
+        d.zahlungen = d.zahlungen || [];
+        d.zahlungen.push({ id: SK.uid(), datum: datum, betrag: Math.round(betrag * 100) / 100, notiz: notiz });
+        // voll bezahlt? -> automatisch ins Archiv
+        const fertig = SK.budget.debtOpen(d) <= 0;
+        if (fertig) d.erledigt = true;
+        SK.app.refresh(); SK.app.closeModal();
+        SK.ui.toast(fertig ? 'Beglichen – ins Archiv' : 'Teilzahlung erfasst');
+      } }
+  ]);
+};
+
 /* =====================================================================
    EREIGNISSE VERBINDEN (Klicks, Eingaben)
    ===================================================================== */
@@ -293,9 +373,13 @@ SK.app.bindEvents = function () {
   // Tagesrest sichern
   document.getElementById('btn-tagesrest').addEventListener('click', SK.app.tagesrestSichern);
 
-  // Ziele / Abos hinzufuegen
+  // Ziele / Abos / Schulden hinzufuegen
   document.getElementById('btn-add-ziel').addEventListener('click', function () { SK.app.openGoalModal(null); });
   document.getElementById('btn-add-abo').addEventListener('click', function () { SK.app.openAboModal(null); });
+  document.getElementById('btn-add-debt').addEventListener('click', function () { SK.app.openDebtModal(null); });
+  document.getElementById('sc-archiv-toggle').addEventListener('click', function () {
+    SK.ui.debtArchiveOpen = !SK.ui.debtArchiveOpen; SK.ui.renderSchulden();
+  });
 
   // Einstellungen
   document.getElementById('se-lohn').addEventListener('change', function (e) {
@@ -306,6 +390,12 @@ SK.app.bindEvents = function () {
   });
   document.getElementById('se-aboswitch').addEventListener('change', function (e) {
     SK.state.settings.abosInFixkosten = e.target.checked; SK.app.refresh();
+  });
+  document.getElementById('se-schuldenswitch').addEventListener('change', function (e) {
+    SK.state.settings.schuldenRateAktiv = e.target.checked; SK.app.refresh();
+  });
+  document.getElementById('se-schuldenrate').addEventListener('change', function (e) {
+    SK.state.settings.schuldenRate = Math.max(0, parseFloat(e.target.value) || 0); SK.app.refresh();
   });
   document.getElementById('se-addcat').addEventListener('click', SK.app.addCategory);
   document.getElementById('se-newcat').addEventListener('keydown', function (e) { if (e.key === 'Enter') SK.app.addCategory(); });
@@ -362,6 +452,29 @@ SK.app.onClick = function (ev) {
   } else if (a === 'delcat') {
     SK.state.categories = SK.state.categories.filter(function (c) { return c.id !== act.dataset.cat; });
     SK.app.refresh(); SK.ui.toast('Kategorie entfernt');
+
+  /* ---- Schulden / Sonderausgaben ---- */
+  } else if (a === 'addpay') {
+    SK.app.openPaymentModal(act.dataset.debt);
+  } else if (a === 'editdebt') {
+    SK.app.openDebtModal(SK.state.debts.find(function (x) { return x.id === act.dataset.debt; }));
+  } else if (a === 'donedebt') {
+    const d = SK.state.debts.find(function (x) { return x.id === act.dataset.debt; });
+    if (d) { d.erledigt = true; SK.app.refresh(); SK.ui.toast('Posten ins Archiv'); }
+  } else if (a === 'reopendebt') {
+    const d = SK.state.debts.find(function (x) { return x.id === act.dataset.debt; });
+    if (d) { d.erledigt = false; SK.app.refresh(); SK.ui.toast('Wieder geöffnet'); }
+  } else if (a === 'deldebt') {
+    if (confirm('Diesen Posten samt allen Teilzahlungen löschen?')) {
+      SK.state.debts = SK.state.debts.filter(function (x) { return x.id !== act.dataset.debt; });
+      SK.app.refresh(); SK.ui.toast('Posten gelöscht');
+    }
+  } else if (a === 'togglepays') {
+    SK.ui.debtExpanded[act.dataset.debt] = !SK.ui.debtExpanded[act.dataset.debt];
+    SK.ui.renderSchulden();
+  } else if (a === 'delpay') {
+    const d = SK.state.debts.find(function (x) { return x.id === act.dataset.debt; });
+    if (d) { d.zahlungen = (d.zahlungen || []).filter(function (z) { return z.id !== act.dataset.pay; }); SK.app.refresh(); SK.ui.toast('Zahlung gelöscht'); }
   }
 };
 

@@ -91,6 +91,9 @@ SK.defaultState = function () {
       abosInFixkosten: false,  // Sollen die Abos automatisch zu den Fixkosten dazugezaehlt werden?
                                //   AUS lassen, wenn deine 580 Fixkosten die Abos schon enthalten
                                //   (sonst werden sie doppelt gerechnet).
+      schuldenRateAktiv: false,// Soll eine monatliche Schulden-Rate vom verfuegbaren Geld
+                               //   abgezogen werden (genau wie die Sparrate)?
+      schuldenRate: 0,         // Wenn aktiv: dieser Betrag pro Monat fuer den Schuldenabbau.
       waehrung: 'CHF'
     },
 
@@ -141,6 +144,17 @@ SK.defaultState = function () {
        immer aus dem Datum (alle Buchungen des laufenden Monats). Dadurch
        bleiben vergangene Monate automatisch fuer die Statistik erhalten. */
     entries: [],
+
+    /* ---- Schulden / Sonderausgaben (eigener Bereich) ----
+       Einmalige groessere Verpflichtungen (z.B. Werkstattrechnung), die
+       getrennt vom Alltags-Budget abbezahlt werden. Ein Posten sieht so aus:
+         { id, name, gesamt: Zahl, faellig:'JJJJ-MM-TT'|null, notiz: Text,
+           erledigt: false, zahlungen: [{ id, datum, betrag, notiz }] }
+       WICHTIG: Diese Posten und ihre Teilzahlungen beeinflussen das normale
+       Tagesbudget NICHT. Nur die optionale monatliche Schulden-Rate aus den
+       Einstellungen (settings.schuldenRate) wird – wie die Sparrate – vorab
+       vom verfuegbaren Monatsgeld abgezogen. */
+    debts: [],
 
     /* ---- Tages-Logbuch (Funktion: Streak) ----
        Pro Tag merken wir uns: wie hoch war das Tagesbudget und wie viel

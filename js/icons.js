@@ -40,6 +40,8 @@ SK.ICONS = {
   filter:   '<path d="M4 5.5h16"/><path d="M7 12h10"/><path d="M10 18.5h4"/>',
   wallet:   '<path d="M3.5 7.5a2 2 0 0 1 2-2H17a1.5 1.5 0 0 1 1.5 1.5v1"/><path d="M3.5 7.5V17a2 2 0 0 0 2 2H19a1.5 1.5 0 0 0 1.5-1.5V11A1.5 1.5 0 0 0 19 9.5H5.5a2 2 0 0 1-2-2Z"/><circle cx="16" cy="14.2" r="1.1" fill="currentColor" stroke="none"/>',
   flame:    '<path d="M12 3s5 3.4 5 9a5 5 0 0 1-10 0c0-2 1-3.3 2-4.3 0 1.4 1 2.2 1.8 2.2C9.6 8.2 12 6.6 12 3Z"/>',
+  receipt:  '<path d="M6 3.5h12v17l-2.4-1.3-2.4 1.3-2.4-1.3-2.4 1.3L6 19.2Z"/><path d="M9 8h6"/><path d="M9 11.5h6"/><path d="M9 15h4"/>',
+  chevron:  '<path d="M6 9.5l6 6 6-6"/>',
   download: '<path d="M12 4v10.5"/><path d="M8 11l4 4 4-4"/><path d="M5 19.5h14"/>',
   upload:   '<path d="M12 20V9.5"/><path d="M8 13l4-4 4 4"/><path d="M5 4.5h14"/>',
 
