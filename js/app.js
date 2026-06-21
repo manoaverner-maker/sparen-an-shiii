@@ -39,9 +39,12 @@ SK.app.init = function () {
 };
 
 /* Setzt in jedes Element mit data-icon="name" das passende SVG-Icon ein.
-   So stehen die Icon-Formen nur an EINER Stelle (js/icons.js). */
-SK.app.injectStaticIcons = function () {
-  document.querySelectorAll('[data-icon]').forEach(function (el) {
+   So stehen die Icon-Formen nur an EINER Stelle (js/icons.js).
+   root = optionaler Teilbereich (z.B. ein frisch gerendertes Element).
+   Idempotent: enthaelt das Element schon ein <svg>, wird es uebersprungen. */
+SK.app.injectStaticIcons = function (root) {
+  (root || document).querySelectorAll('[data-icon]').forEach(function (el) {
+    if (el.querySelector('svg')) return;
     el.innerHTML = SK.icon(el.dataset.icon) + el.innerHTML;
   });
 };
@@ -93,17 +96,36 @@ SK.app.handleRollover = function () {
 /* =====================================================================
    NAVIGATION
    ===================================================================== */
+/* Views, die unten als eigener Tab vorkommen. Alles andere liegt unter "Mehr". */
+SK.app.BOTTOM_VIEWS = ['heute', 'verlauf', 'statistik', 'markets', 'mehr'];
+
 SK.app.switchView = function (view) {
   document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('is-active'); });
   const el = document.getElementById('view-' + view);
   if (el) el.classList.add('is-active');
-  // aktive Markierung in beiden Navigationen
-  document.querySelectorAll('.tab, .side-link').forEach(function (b) {
+
+  // Sidebar (Desktop): direkte Treffer markieren
+  document.querySelectorAll('.side-link').forEach(function (b) {
     b.classList.toggle('is-active', b.dataset.view === view);
   });
+  // Untere Leiste (mobil): Treffer markieren, sonst "Mehr" hervorheben
+  let matched = false;
+  document.querySelectorAll('.tab').forEach(function (b) {
+    const on = b.dataset.view === view; if (on) matched = true;
+    b.classList.toggle('is-active', on);
+  });
+  if (!matched) {
+    const m = document.querySelector('.tab[data-view="mehr"]');
+    if (m) m.classList.add('is-active');
+  }
+
   window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
-  // Statistik braucht aktuelle Charts (Groesse erst sichtbar bekannt)
+
+  // Tab-spezifische Aktionen
   if (view === 'statistik') SK.ui.renderStatistik();
+  if (view === 'markets') SK.app.loadMarkets();
+  if (view === 'coach') SK.ui.renderCoach();
+  if (view === 'ideen') SK.app.loadDailyIdea();
 };
 
 /* =====================================================================
@@ -162,11 +184,11 @@ SK.app.tagesrestSichern = function () {
   const c = SK.budget.compute(SK.state);
   const rest = Math.round(c.heuteNochVerfuegbar * 100) / 100;
   if (rest <= 0) { SK.ui.toast('Heute ist kein Rest übrig', true); return; }
-  const goal = SK.state.goals.find(function (g) { return !g.archiviert; });
+  const goal = SK.budget.hauptZiel(SK.state); // dasselbe Ziel wie auf der Dashboard-Karte
   if (!goal) { SK.ui.toast('Kein Sparziel vorhanden', true); return; }
   SK.state.entries.push({ id: SK.uid(), datum: SK.dateKey(), betrag: rest, typ: 'sparen', goalId: goal.id, notiz: 'Tagesrest' });
   SK.app.refresh();
-  SK.ui.toast(SK.ui.fmt(rest) + ' CHF gesichert');
+  SK.ui.toast(SK.ui.fmt(rest) + ' CHF in ' + goal.name + ' gesichert');
   SK.app.pulseHero();
 };
 
@@ -193,30 +215,57 @@ SK.app.closeModal = function () {
   document.getElementById('modal').classList.remove('show');
 };
 
-/* ---- Ziel anlegen / bearbeiten ---- */
+/* ---- Ziel anlegen / bearbeiten ----
+   Unterstuetzt zwei Arten: 'ziel' (Betrag bis Datum) und 'monatlich' (fester
+   Betrag pro Monat, z.B. Motorrad). Die passenden Felder werden je nach Auswahl
+   ein-/ausgeblendet. */
 SK.app.openGoalModal = function (goal) {
-  const g = goal || { name: '', ziel: '', zieldatum: '', startGespart: 0 };
+  const g = goal || { name: '', modus: 'ziel', ziel: '', monatlich: '', zieldatum: '', startGespart: 0 };
+  const isM = g.modus === 'monatlich';
   const body =
-    '<label class="field"><span>Name</span><input type="text" id="m-name" value="' + SK.ui.esc(g.name) + '" placeholder="z.B. Notgroschen"></label>'
-    + '<label class="field"><span>Zielbetrag (CHF)</span><input type="number" id="m-ziel" inputmode="decimal" value="' + g.ziel + '" min="1"></label>'
-    + '<label class="field"><span>Zieldatum</span><input type="date" id="m-datum" value="' + (g.zieldatum || '') + '"></label>'
+    '<label class="field"><span>Art</span><select id="m-modus">'
+      + '<option value="ziel"' + (isM ? '' : ' selected') + '>Ziel mit Datum (z.B. Ferien)</option>'
+      + '<option value="monatlich"' + (isM ? ' selected' : '') + '>Fester Betrag pro Monat (z.B. Motorrad)</option>'
+    + '</select></label>'
+    + '<label class="field"><span>Name</span><input type="text" id="m-name" value="' + SK.ui.esc(g.name) + '" placeholder="z.B. Notgroschen"></label>'
+    + '<div id="m-grp-ziel">'
+      + '<label class="field"><span>Zielbetrag (CHF)</span><input type="number" id="m-ziel" inputmode="decimal" value="' + (g.ziel || '') + '" min="1"></label>'
+      + '<label class="field"><span>Zieldatum</span><input type="date" id="m-datum" value="' + (g.zieldatum || '') + '"></label>'
+    + '</div>'
+    + '<div id="m-grp-mon">'
+      + '<label class="field"><span>Betrag pro Monat (CHF)</span><input type="number" id="m-monatlich" inputmode="decimal" value="' + (g.monatlich || '') + '" min="1" step="10"></label>'
+    + '</div>'
     + '<label class="field"><span>Bereits gespart (CHF)</span><input type="number" id="m-start" inputmode="decimal" value="' + (g.startGespart || 0) + '" min="0"></label>';
   SK.app.openModal(goal ? 'Ziel bearbeiten' : 'Neues Sparziel', body, [
     { label: 'Abbrechen', cls: 'btn-ghost', onClick: SK.app.closeModal },
     { label: 'Speichern', cls: 'btn-accent', onClick: function () {
+        const modus = document.getElementById('m-modus').value;
         const name = document.getElementById('m-name').value.trim();
-        const ziel = parseFloat(document.getElementById('m-ziel').value);
-        const datum = document.getElementById('m-datum').value;
         const start = parseFloat(document.getElementById('m-start').value) || 0;
-        if (!name || !ziel || ziel <= 0 || !datum) { SK.ui.toast('Bitte Name, Betrag und Datum ausfüllen', true); return; }
-        if (goal) {
-          goal.name = name; goal.ziel = ziel; goal.zieldatum = datum; goal.startGespart = start;
+        if (!name) { SK.ui.toast('Bitte einen Namen eingeben', true); return; }
+        if (modus === 'monatlich') {
+          const m = parseFloat(document.getElementById('m-monatlich').value);
+          if (!m || m <= 0) { SK.ui.toast('Bitte Betrag pro Monat angeben', true); return; }
+          if (goal) { goal.name = name; goal.modus = 'monatlich'; goal.monatlich = m; goal.startGespart = start; }
+          else SK.state.goals.push({ id: SK.uid(), name: name, modus: 'monatlich', ziel: 0, monatlich: m, startGespart: start, zieldatum: '', farbe: '#1fc8e3', archiviert: false });
         } else {
-          SK.state.goals.push({ id: SK.uid(), name: name, ziel: ziel, zieldatum: datum, startGespart: start, farbe: '#19e3a6', archiviert: false });
+          const ziel = parseFloat(document.getElementById('m-ziel').value);
+          const datum = document.getElementById('m-datum').value;
+          if (!ziel || ziel <= 0 || !datum) { SK.ui.toast('Bitte Zielbetrag und Datum angeben', true); return; }
+          if (goal) { goal.name = name; goal.modus = 'ziel'; goal.ziel = ziel; goal.zieldatum = datum; goal.startGespart = start; }
+          else SK.state.goals.push({ id: SK.uid(), name: name, modus: 'ziel', ziel: ziel, monatlich: 0, startGespart: start, zieldatum: datum, farbe: '#19e3a6', archiviert: false });
         }
         SK.app.refresh(); SK.app.closeModal(); SK.ui.toast('Ziel gespeichert');
       } }
   ]);
+  // Felder passend zur Art ein-/ausblenden
+  const upd = function () {
+    const m = document.getElementById('m-modus').value === 'monatlich';
+    document.getElementById('m-grp-ziel').style.display = m ? 'none' : 'block';
+    document.getElementById('m-grp-mon').style.display = m ? 'block' : 'none';
+  };
+  document.getElementById('m-modus').addEventListener('change', upd);
+  upd();
 };
 
 /* ---- In ein Ziel einzahlen ---- */
@@ -270,12 +319,14 @@ SK.app.openAboModal = function (abo) {
   SK.app.openModal(abo ? 'Abo bearbeiten' : 'Neues Abo', body, buttons);
 };
 
-/* ---- Schulden-Posten anlegen / bearbeiten ---- */
-SK.app.openDebtModal = function (debt) {
+/* ---- Schulden-Posten / Busse anlegen / bearbeiten ----
+   kind: 'schuld' (Standard) oder 'busse'. */
+SK.app.openDebtModal = function (debt, kind) {
   const d = debt || { name: '', gesamt: '', faellig: '', notiz: '' };
   const neu = !debt;
+  const istBusse = (debt ? debt.kind : kind) === 'busse';
   let body =
-    '<label class="field"><span>Name</span><input type="text" id="m-name" value="' + SK.ui.esc(d.name) + '" placeholder="z.B. Werkstatt"></label>'
+    '<label class="field"><span>Name</span><input type="text" id="m-name" value="' + SK.ui.esc(d.name) + '" placeholder="' + (istBusse ? 'z.B. Parkbusse' : 'z.B. Werkstatt') + '"></label>'
     + '<label class="field"><span>Gesamtbetrag (CHF)</span><input type="number" id="m-gesamt" inputmode="decimal" value="' + d.gesamt + '" min="1" step="1"></label>'
     + '<label class="field"><span>Fällig bis (optional)</span><input type="date" id="m-faellig" value="' + (d.faellig || '') + '"></label>'
     + '<label class="field"><span>Notiz (optional)</span><input type="text" id="m-notiz" value="' + SK.ui.esc(d.notiz || '') + '" placeholder="z.B. Bremsen + Service"></label>';
@@ -285,7 +336,7 @@ SK.app.openDebtModal = function (debt) {
           + '<div class="rate-hint" id="m-ratehint"></div>'
           + '<label class="switch-row"><span>Vorgeschlagene Rate als monatliche Schulden-Rate setzen</span><input type="checkbox" id="m-setrate" class="switch"></label>';
   }
-  SK.app.openModal(neu ? 'Neuer Posten' : 'Posten bearbeiten', body, [
+  SK.app.openModal(neu ? (istBusse ? 'Neue Busse' : 'Neuer Posten') : 'Posten bearbeiten', body, [
     { label: 'Abbrechen', cls: 'btn-ghost', onClick: SK.app.closeModal },
     { label: 'Speichern', cls: 'btn-accent', onClick: function () {
         const name = document.getElementById('m-name').value.trim();
@@ -296,7 +347,7 @@ SK.app.openDebtModal = function (debt) {
         if (debt) {
           debt.name = name; debt.gesamt = gesamt; debt.faellig = faellig; debt.notiz = notiz;
         } else {
-          SK.state.debts.push({ id: SK.uid(), name: name, gesamt: gesamt, faellig: faellig, notiz: notiz, erledigt: false, zahlungen: [] });
+          SK.state.debts.push({ id: SK.uid(), name: name, gesamt: gesamt, faellig: faellig, notiz: notiz, erledigt: false, kind: (kind === 'busse' ? 'busse' : 'schuld'), zahlungen: [] });
           // optional: vorgeschlagene Rate als monatliche Schulden-Rate uebernehmen
           const ratenEl = document.getElementById('m-raten');
           const setrateEl = document.getElementById('m-setrate');
@@ -351,6 +402,98 @@ SK.app.openPaymentModal = function (debtId) {
 };
 
 /* =====================================================================
+   MÄRKTE / KI / LISTEN (v2)
+   ===================================================================== */
+
+/* Holt aktuelle Krypto-Kurse und zeichnet den Maerkte-Tab neu.
+   Faellt bei Fehler/Funkloch auf die zwischengespeicherten Werte zurueck. */
+SK.app.loadingMarkets = false;
+SK.app.loadMarkets = async function () {
+  if (SK.app.loadingMarkets) return;
+  SK.app.loadingMarkets = true;
+  const refreshBtn = document.getElementById('btn-market-refresh');
+  if (refreshBtn) refreshBtn.classList.add('spinning');
+  try {
+    await SK.markets.load();
+    SK.ui.renderMarkets();
+    SK.ui.renderEthMini();
+  } catch (e) {
+    SK.ui.renderMarkets(); // zeigt Cache
+    if (!SK.markets.cached()) SK.ui.toast('Kurse nicht erreichbar (offline?)', true);
+  } finally {
+    SK.app.loadingMarkets = false;
+    if (refreshBtn) refreshBtn.classList.remove('spinning');
+  }
+};
+
+/* Holt die "Idee des Tages" von Claude – aber hoechstens einmal pro Tag
+   automatisch (gecacht in state.moneyResearch). force=true erzwingt neu. */
+SK.app.loadingIdea = false;
+SK.app.loadDailyIdea = async function (force) {
+  if (!SK.ai.available()) { SK.ui.renderIdeen(); return; }
+  const heute = SK.dateKey();
+  if (!force && SK.state.moneyResearch && SK.state.moneyResearch.datum === heute && SK.state.moneyResearch.text) {
+    SK.ui.renderIdeen(); return;
+  }
+  if (SK.app.loadingIdea) return;          // schon eine Anfrage unterwegs
+  SK.app.loadingIdea = true;
+  const refreshBtn = document.getElementById('btn-idea-refresh');
+  if (refreshBtn) refreshBtn.classList.add('spinning');
+  const body = document.getElementById('id-ai-body');
+  if (body) body.innerHTML = '<div class="skeleton" style="height:80px"></div>';
+  try {
+    const text = await SK.ai.idea();
+    SK.state.moneyResearch = { datum: heute, text: text };
+    SK.storage.save();
+    SK.ui.renderIdeen();
+  } catch (e) {
+    if (body) body.innerHTML = '<p class="ai-error">KI-Idee nicht geladen: ' + SK.ui.esc(e.message) + '</p>';
+  } finally {
+    SK.app.loadingIdea = false;
+    if (refreshBtn) refreshBtn.classList.remove('spinning');
+  }
+};
+
+/* Holt eine persoenliche Ausgaben-Analyse von Claude (Knopf im KI-Coach). */
+SK.app.analyzing = false;
+SK.app.analyzeSpending = async function () {
+  if (SK.app.analyzing) return;            // schon eine Analyse unterwegs
+  SK.app.analyzing = true;
+  const out = document.getElementById('co-out');
+  if (out) out.innerHTML = '<div class="skeleton" style="height:90px"></div>';
+  try {
+    const text = await SK.ai.analyze();
+    if (out) out.innerHTML = '<div class="ai-out">' + SK.ui.aiText(text) + '</div>';
+  } catch (e) {
+    if (out) out.innerHTML = '<p class="ai-error">Analyse fehlgeschlagen: ' + SK.ui.esc(e.message) + '</p>';
+  } finally {
+    SK.app.analyzing = false;
+  }
+};
+
+/* Testet den hinterlegten API-Schluessel mit einer winzigen Anfrage. */
+SK.app.testAiKey = async function () {
+  const out = document.getElementById('se-aitest-out');
+  out.textContent = 'Teste …';
+  try {
+    await SK.ai.ask('Antworte mit genau dem Wort: OK', 'Test', 16);
+    out.innerHTML = SK.icon('check', 'ic-sm') + ' Schlüssel funktioniert.';
+    out.style.color = 'var(--green)';
+  } catch (e) {
+    out.innerHTML = SK.icon('alert', 'ic-sm') + ' ' + SK.ui.esc(e.message);
+    out.style.color = 'var(--red)';
+  }
+};
+
+/* Neue Liste anlegen. */
+SK.app.addList = function () {
+  const name = (prompt('Name der neuen Liste:', '') || '').trim();
+  if (!name) return;
+  SK.state.lists.push({ id: SK.uid(), name: name, icon: 'star', items: [] });
+  SK.app.refresh(); SK.ui.toast('Liste angelegt');
+};
+
+/* =====================================================================
    EREIGNISSE VERBINDEN (Klicks, Eingaben)
    ===================================================================== */
 SK.app.bindEvents = function () {
@@ -373,13 +516,19 @@ SK.app.bindEvents = function () {
   // Tagesrest sichern
   document.getElementById('btn-tagesrest').addEventListener('click', SK.app.tagesrestSichern);
 
-  // Ziele / Abos / Schulden hinzufuegen
+  // Ziele / Abos / Schulden / Bussen / Listen hinzufuegen
   document.getElementById('btn-add-ziel').addEventListener('click', function () { SK.app.openGoalModal(null); });
   document.getElementById('btn-add-abo').addEventListener('click', function () { SK.app.openAboModal(null); });
-  document.getElementById('btn-add-debt').addEventListener('click', function () { SK.app.openDebtModal(null); });
+  document.getElementById('btn-add-debt').addEventListener('click', function () { SK.app.openDebtModal(null, 'schuld'); });
+  document.getElementById('btn-add-busse').addEventListener('click', function () { SK.app.openDebtModal(null, 'busse'); });
+  document.getElementById('btn-add-list').addEventListener('click', SK.app.addList);
   document.getElementById('sc-archiv-toggle').addEventListener('click', function () {
     SK.ui.debtArchiveOpen = !SK.ui.debtArchiveOpen; SK.ui.renderSchulden();
   });
+
+  // Märkte / Geld-Ideen aktualisieren
+  document.getElementById('btn-market-refresh').addEventListener('click', SK.app.loadMarkets);
+  document.getElementById('btn-idea-refresh').addEventListener('click', function () { SK.app.loadDailyIdea(true); });
 
   // Einstellungen
   document.getElementById('se-lohn').addEventListener('change', function (e) {
@@ -397,6 +546,23 @@ SK.app.bindEvents = function () {
   document.getElementById('se-schuldenrate').addEventListener('change', function (e) {
     SK.state.settings.schuldenRate = Math.max(0, parseFloat(e.target.value) || 0); SK.app.refresh();
   });
+  // KI-Coach-Einstellungen
+  document.getElementById('se-aiswitch').addEventListener('change', function (e) {
+    SK.state.settings.aiAktiv = e.target.checked; SK.app.refresh();
+  });
+  document.getElementById('se-aikey').addEventListener('change', function (e) {
+    SK.state.settings.aiKey = e.target.value.trim(); SK.storage.save();
+  });
+  document.getElementById('se-aimodel').addEventListener('change', function (e) {
+    SK.state.settings.aiModel = e.target.value; SK.storage.save();
+  });
+  document.getElementById('se-aitest').addEventListener('click', SK.app.testAiKey);
+  document.getElementById('se-cryptocur').addEventListener('change', function (e) {
+    SK.state.settings.cryptoWaehrung = e.target.value;
+    SK.state.cryptoCache = { ts: 0, data: null }; // Waehrung gewechselt -> Cache verwerfen
+    SK.storage.save(); SK.app.refresh();
+  });
+
   document.getElementById('se-addcat').addEventListener('click', SK.app.addCategory);
   document.getElementById('se-newcat').addEventListener('keydown', function (e) { if (e.key === 'Enter') SK.app.addCategory(); });
   document.getElementById('se-export').addEventListener('click', SK.storage.downloadBackup);
@@ -475,6 +641,35 @@ SK.app.onClick = function (ev) {
   } else if (a === 'delpay') {
     const d = SK.state.debts.find(function (x) { return x.id === act.dataset.debt; });
     if (d) { d.zahlungen = (d.zahlungen || []).filter(function (z) { return z.id !== act.dataset.pay; }); SK.app.refresh(); SK.ui.toast('Zahlung gelöscht'); }
+
+  /* ---- KI-Coach ---- */
+  } else if (a === 'analyze') {
+    SK.app.analyzeSpending();
+
+  /* ---- Listen / Wunschliste ---- */
+  } else if (a === 'listadd') {
+    const lid = act.dataset.list;
+    const l = SK.state.lists.find(function (x) { return x.id === lid; });
+    const tEl = document.querySelector('.li-new-text[data-list="' + lid + '"]');
+    const aEl = document.querySelector('.li-new-amt[data-list="' + lid + '"]');
+    const text = (tEl.value || '').trim();
+    if (!text) { tEl.focus(); return; }
+    const betrag = parseFloat(aEl.value) || 0;
+    l.items = l.items || [];
+    l.items.push({ id: SK.uid(), text: text, betrag: betrag ? Math.round(betrag * 100) / 100 : 0, erledigt: false });
+    SK.app.refresh();
+  } else if (a === 'listtoggle') {
+    const l = SK.state.lists.find(function (x) { return x.id === act.dataset.list; });
+    const it = l && (l.items || []).find(function (x) { return x.id === act.dataset.item; });
+    if (it) { it.erledigt = !it.erledigt; SK.app.refresh(); }
+  } else if (a === 'listdelitem') {
+    const l = SK.state.lists.find(function (x) { return x.id === act.dataset.list; });
+    if (l) { l.items = (l.items || []).filter(function (x) { return x.id !== act.dataset.item; }); SK.app.refresh(); }
+  } else if (a === 'dellist') {
+    if (confirm('Diese Liste löschen?')) {
+      SK.state.lists = SK.state.lists.filter(function (x) { return x.id !== act.dataset.list; });
+      SK.app.refresh(); SK.ui.toast('Liste gelöscht');
+    }
   }
 };
 

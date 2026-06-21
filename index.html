@@ -32,6 +32,10 @@
 </head>
 <body>
 
+<!-- Feiner Film-Korn-Overlay: nimmt dem dunklen Verlauf das "Banding" und
+     gibt der App eine edlere Tiefe. Rein dekorativ, klickt nicht. -->
+<div class="grain" aria-hidden="true"></div>
+
 <!-- ====================== KOPFZEILE ====================== -->
 <header class="topbar">
   <div class="brand">
@@ -54,7 +58,11 @@
     <button class="side-link" data-view="verlauf"><span class="ico" data-icon="list"></span><span>Verlauf</span></button>
     <button class="side-link" data-view="ziele"><span class="ico" data-icon="target"></span><span>Ziele</span></button>
     <button class="side-link" data-view="abos"><span class="ico" data-icon="repeat"></span><span>Abos</span></button>
-    <button class="side-link" data-view="schulden"><span class="ico" data-icon="receipt"></span><span>Schulden</span></button>
+    <button class="side-link" data-view="schulden"><span class="ico" data-icon="receipt"></span><span>Schulden &amp; Bussen</span></button>
+    <button class="side-link" data-view="listen"><span class="ico" data-icon="star"></span><span>Listen</span></button>
+    <button class="side-link" data-view="markets"><span class="ico" data-icon="coin"></span><span>Märkte</span></button>
+    <button class="side-link" data-view="coach"><span class="ico" data-icon="ai"></span><span>KI-Coach</span></button>
+    <button class="side-link" data-view="ideen"><span class="ico" data-icon="lightbulb"></span><span>Geld-Ideen</span></button>
     <button class="side-link" data-view="statistik"><span class="ico" data-icon="chart"></span><span>Statistik</span></button>
     <button class="side-link" data-view="einstellungen"><span class="ico" data-icon="settings"></span><span>Einstellungen</span></button>
     <button class="side-add" id="btn-add-desktop"><span class="ic-pre" data-icon="plus"></span>Ausgabe</button>
@@ -66,17 +74,27 @@
     <!-- ---------- HEUTE (Dashboard) ---------- -->
     <section class="view is-active" id="view-heute">
       <!-- Hero: Heute noch verfuegbar -->
-      <div class="card hero" id="hero-card">
-        <div class="hero-label">Heute noch verfügbar</div>
-        <div class="hero-amount"><span id="hd-heute">0</span><span class="cur">CHF</span></div>
+      <div class="card card--lit hero" id="hero-card">
+        <div class="hero-label label">Heute noch verfügbar</div>
+        <div class="hero-amount amount-hero"><span id="hd-heute">0</span><span class="cur">CHF</span></div>
         <div class="ampel-bar"><div class="ampel-fill" id="hd-ampelbar"></div></div>
         <div class="hero-sub">Tagesbudget heute: <strong id="hd-tagesbudget">0</strong> CHF · noch <span id="hd-resttage">0</span> Tage im Monat</div>
+        <div class="hero-spark" id="hd-spark"></div>
       </div>
 
       <!-- Tempo-Warnung -->
       <div class="card pace" id="pace-card">
-        <div class="pace-icon" id="hd-pace-icon">⏱️</div>
+        <div class="pace-icon" id="hd-pace-icon"></div>
         <div class="pace-text" id="hd-pace">Tempo wird berechnet …</div>
+      </div>
+
+      <!-- Smart-Analyse (laeuft auf dem Geraet, ohne KI-Schluessel) -->
+      <div class="card insight-card" id="insight-card">
+        <div class="row-between section-head">
+          <h2><span class="ic-pre" data-icon="ai"></span>Smart-Analyse</h2>
+          <button class="link-btn" data-view="coach">KI-Coach →</button>
+        </div>
+        <div id="hd-insights" class="insight-list"></div>
       </div>
 
       <!-- Abo-Erinnerung (nur sichtbar wenn bald eine Verlaengerung ansteht) -->
@@ -89,6 +107,18 @@
       <div class="mini-grid">
         <div class="card mini"><div class="mini-label">Diesen Monat ausgegeben</div><div class="mini-val"><span id="hd-monat">0</span> CHF</div></div>
         <div class="card mini"><div class="mini-label">Noch verfügbar (Monat)</div><div class="mini-val"><span id="hd-rest">0</span> CHF</div></div>
+      </div>
+
+      <!-- Live ETH-Kurs (kurzer Blick; Details im Märkte-Tab) -->
+      <div class="card eth-mini" id="eth-mini-card" data-view="markets">
+        <div class="eth-mini-left">
+          <div class="entry-ico" style="color:var(--gold)"><span data-icon="coin"></span></div>
+          <div><div class="eth-mini-name">Ethereum</div><div class="cap" id="hd-eth-sub">Kurs wird geladen …</div></div>
+        </div>
+        <div class="eth-mini-right">
+          <div class="eth-mini-price" id="hd-eth-price">—</div>
+          <div class="chg" id="hd-eth-chg"></div>
+        </div>
       </div>
 
       <!-- Sparziel (Hauptziel) -->
@@ -142,16 +172,19 @@
       <div id="ab-liste"></div>
     </section>
 
-    <!-- ---------- SCHULDEN / SONDERAUSGABEN ---------- -->
+    <!-- ---------- SCHULDEN / SONDERAUSGABEN / BUSSEN ---------- -->
     <section class="view" id="view-schulden">
       <div class="row-between">
-        <h1 class="view-title">Schulden / Sonderausgaben</h1>
-        <button class="btn btn-accent btn-sm" id="btn-add-debt">＋ Posten</button>
+        <h1 class="view-title">Schulden &amp; Bussen</h1>
+        <div class="head-actions">
+          <button class="btn btn-ghost btn-sm" id="btn-add-busse"><span class="ic-pre" data-icon="ticket"></span>Busse</button>
+          <button class="btn btn-accent btn-sm" id="btn-add-debt">＋ Posten</button>
+        </div>
       </div>
 
       <!-- Summe aller offenen Schulden -->
       <div class="card debt-total">
-        <div class="mini-label">Offene Schulden gesamt</div>
+        <div class="mini-label">Offene Schulden &amp; Bussen gesamt</div>
         <div class="debt-total-val"><span id="sc-total">0</span> CHF</div>
         <div class="abo-total-sub" id="sc-sub"></div>
       </div>
@@ -209,6 +242,85 @@
       </div>
     </section>
 
+    <!-- ---------- MÄRKTE (Krypto live) ---------- -->
+    <section class="view" id="view-markets">
+      <div class="row-between">
+        <h1 class="view-title">Märkte</h1>
+        <button class="icon-btn" id="btn-market-refresh" data-icon="refresh" title="Kurse aktualisieren" aria-label="Aktualisieren"></button>
+      </div>
+      <p class="cap" id="mk-stand">Live-Kurse von CoinGecko · keine Anlageberatung</p>
+      <div id="mk-liste"></div>
+      <div class="card disclaimer">
+        <span class="ic-pre" data-icon="alert"></span>
+        <span><strong>Kein Finanzrat.</strong> Kurse sind nur zur Info und können verzögert sein. Krypto ist sehr schwankungsanfällig – investiere nur Geld, das du nicht brauchst. Echte Aktienkurse gibt es gratis leider nicht direkt im Browser; darum Fokus Krypto.</span>
+      </div>
+    </section>
+
+    <!-- ---------- KI-COACH ---------- -->
+    <section class="view" id="view-coach">
+      <h1 class="view-title">KI-Coach</h1>
+
+      <!-- Smart-Analyse (immer da) -->
+      <div class="card">
+        <div class="section-head"><h2><span class="ic-pre" data-icon="ai"></span>Smart-Analyse</h2></div>
+        <p class="muted">Läuft direkt auf deinem Gerät, ohne Schlüssel und kostenlos.</p>
+        <div id="co-insights" class="insight-list"></div>
+      </div>
+
+      <!-- echter KI-Coach (optional) -->
+      <div class="card" id="co-ai-card">
+        <div class="section-head"><h2>Persönliche Analyse von Claude</h2></div>
+        <div id="co-ai-body"></div>
+      </div>
+    </section>
+
+    <!-- ---------- GELD-IDEEN ---------- -->
+    <section class="view" id="view-ideen">
+      <h1 class="view-title">Geld-Ideen</h1>
+
+      <div class="card" id="id-ai-card">
+        <div class="row-between section-head">
+          <h2><span class="ic-pre" data-icon="lightbulb"></span>Idee des Tages</h2>
+          <button class="icon-btn" id="btn-idea-refresh" data-icon="refresh" title="Neue Idee" aria-label="Neue Idee"></button>
+        </div>
+        <div id="id-ai-body"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-head"><h2>Bewährte Wege (Schweiz)</h2></div>
+        <div id="id-static"></div>
+      </div>
+
+      <div class="card disclaimer">
+        <span class="ic-pre" data-icon="alert"></span>
+        <span><strong>Keine personalisierte Finanzberatung.</strong> Allgemeine, recherchierte Ideen zur Orientierung. Zahlen sind Richtwerte 2026.</span>
+      </div>
+    </section>
+
+    <!-- ---------- LISTEN / WUNSCHLISTE ---------- -->
+    <section class="view" id="view-listen">
+      <div class="row-between">
+        <h1 class="view-title">Listen</h1>
+        <button class="btn btn-accent btn-sm" id="btn-add-list">＋ Liste</button>
+      </div>
+      <p class="cap">Eigene Listen, z.B. eine Wunschliste mit Preisen. Rein informativ – fliesst nicht ins Budget.</p>
+      <div id="ls-liste"></div>
+    </section>
+
+    <!-- ---------- MEHR (Hub, nur mobil) ---------- -->
+    <section class="view" id="view-mehr">
+      <h1 class="view-title">Mehr</h1>
+      <div class="more-list">
+        <button class="more-row" data-view="ziele"><span class="ico" data-icon="target"></span><span class="more-label">Sparziele</span><span class="more-chev" data-icon="chevronR"></span></button>
+        <button class="more-row" data-view="abos"><span class="ico" data-icon="repeat"></span><span class="more-label">Abo-Radar</span><span class="more-chev" data-icon="chevronR"></span></button>
+        <button class="more-row" data-view="schulden"><span class="ico" data-icon="receipt"></span><span class="more-label">Schulden &amp; Bussen</span><span class="more-chev" data-icon="chevronR"></span></button>
+        <button class="more-row" data-view="listen"><span class="ico" data-icon="star"></span><span class="more-label">Listen</span><span class="more-chev" data-icon="chevronR"></span></button>
+        <button class="more-row" data-view="coach"><span class="ico" data-icon="ai"></span><span class="more-label">KI-Coach</span><span class="more-chev" data-icon="chevronR"></span></button>
+        <button class="more-row" data-view="ideen"><span class="ico" data-icon="lightbulb"></span><span class="more-label">Geld-Ideen</span><span class="more-chev" data-icon="chevronR"></span></button>
+        <button class="more-row" data-view="einstellungen"><span class="ico" data-icon="settings"></span><span class="more-label">Einstellungen</span><span class="more-chev" data-icon="chevronR"></span></button>
+      </div>
+    </section>
+
     <!-- ---------- EINSTELLUNGEN ---------- -->
     <section class="view" id="view-einstellungen">
       <h1 class="view-title">Einstellungen</h1>
@@ -226,6 +338,33 @@
         <label class="switch-row"><span>Monatliche Schulden-Rate vom verfügbaren Geld abziehen<small>Wird – wie die Sparrate – vor dem Tagesbudget reserviert. Einzelne Zahlungen verfälschen so dein Tagesbudget nicht.</small></span>
           <input type="checkbox" id="se-schuldenswitch" class="switch"></label>
         <label class="field" id="se-schuldenrate-wrap"><span>Schulden-Rate pro Monat (CHF)</span><input type="number" id="se-schuldenrate" inputmode="decimal" min="0" step="10"></label>
+      </div>
+
+      <div class="card">
+        <h2 class="section-head"><span class="ic-pre" data-icon="ai"></span>KI-Coach (optional)</h2>
+        <p class="muted">Hol echte Analysen &amp; Geld-Ideen von Claude. Braucht einen eigenen Anthropic-API-Schlüssel (von <strong>console.anthropic.com</strong>, mit API-Guthaben). Das ist <strong>getrennt</strong> von einem Claude-Max-Abo. Der Schlüssel bleibt nur auf diesem Gerät.</p>
+        <label class="switch-row"><span>KI-Coach einschalten<small>Bei eingeschaltetem Coach wird eine Zusammenfassung deiner Zahlen an Anthropic gesendet.</small></span>
+          <input type="checkbox" id="se-aiswitch" class="switch"></label>
+        <label class="field" id="se-aikey-wrap"><span>Anthropic API-Schlüssel (sk-ant-…)</span>
+          <input type="password" id="se-aikey" autocomplete="off" placeholder="sk-ant-…"></label>
+        <label class="field"><span>Modell</span>
+          <select id="se-aimodel">
+            <option value="claude-opus-4-8">Claude Opus 4.8 (am besten)</option>
+            <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (günstiger)</option>
+            <option value="claude-haiku-4-5">Claude Haiku 4.5 (am günstigsten)</option>
+          </select></label>
+        <button class="btn btn-ghost btn-block" id="se-aitest">Schlüssel testen</button>
+        <div class="cap" id="se-aitest-out"></div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-head"><span class="ic-pre" data-icon="coin"></span>Märkte</h2>
+        <label class="field"><span>Kurs-Anzeigewährung</span>
+          <select id="se-cryptocur">
+            <option value="chf">CHF</option>
+            <option value="usd">USD</option>
+          </select></label>
+        <p class="muted">Krypto-Kurse kommen von CoinGecko (gratis, ohne Schlüssel). Watchlist: ETH, BTC, SOL.</p>
       </div>
 
       <div class="card">
@@ -262,10 +401,9 @@
 <nav class="bottomnav" aria-label="Hauptnavigation">
   <button class="tab is-active" data-view="heute"><span class="ico" data-icon="home"></span><span class="lbl">Heute</span></button>
   <button class="tab" data-view="verlauf"><span class="ico" data-icon="list"></span><span class="lbl">Verlauf</span></button>
-  <button class="tab" data-view="ziele"><span class="ico" data-icon="target"></span><span class="lbl">Ziele</span></button>
-  <button class="tab" data-view="abos"><span class="ico" data-icon="repeat"></span><span class="lbl">Abos</span></button>
-  <button class="tab" data-view="schulden"><span class="ico" data-icon="receipt"></span><span class="lbl">Schulden</span></button>
   <button class="tab" data-view="statistik"><span class="ico" data-icon="chart"></span><span class="lbl">Statistik</span></button>
+  <button class="tab" data-view="markets"><span class="ico" data-icon="coin"></span><span class="lbl">Märkte</span></button>
+  <button class="tab" data-view="mehr"><span class="ico" data-icon="grid"></span><span class="lbl">Mehr</span></button>
 </nav>
 
 <!-- ====================== AUSGABE ERFASSEN (Bottom Sheet) ====================== -->
@@ -302,6 +440,8 @@
 <script src="js/storage.js"></script>
 <script src="js/budget.js"></script>
 <script src="js/charts.js"></script>
+<script src="js/markets.js"></script>
+<script src="js/ai.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/app.js"></script>
 </body>

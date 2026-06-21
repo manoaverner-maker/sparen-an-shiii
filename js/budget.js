@@ -72,11 +72,15 @@ SK.budget.goalRemaining = function (state, goal) {
   return Math.max(0, goal.ziel - SK.budget.goalSaved(state, goal));
 };
 
-/* Benoetigte monatliche Sparrate fuer EIN Ziel:
-   fehlender Betrag / Monate bis zum Zieldatum.
+/* Benoetigte monatliche Sparrate fuer EIN Ziel.
+   Zwei Arten (Feld "modus"):
+     'monatlich' -> fester Betrag pro Monat (z.B. 250 CHF Motorrad).
+     'ziel'      -> fehlender Betrag / Monate bis zum Zieldatum.
+   Fehlt das Feld (alte Daten), behandeln wir es als 'ziel'.
    Archivierte oder bereits erreichte Ziele brauchen 0. */
 SK.budget.goalMonthlyRate = function (state, goal, heute) {
   if (goal.archiviert) return 0;
+  if (goal.modus === 'monatlich') return goal.monatlich || 0;
   const fehlt = SK.budget.goalRemaining(state, goal);
   if (fehlt <= 0) return 0;
   return fehlt / SK.budget.monthsUntil(goal.zieldatum, heute);
@@ -88,6 +92,14 @@ SK.budget.totalMonthlyRate = function (state, heute) {
   let summe = 0;
   for (const g of state.goals) summe += SK.budget.goalMonthlyRate(state, g, heute);
   return summe;
+};
+
+/* Das "Hauptziel": erstes aktives Ziel mit Datum, sonst das erste aktive.
+   EINE gemeinsame Quelle, damit die Dashboard-Karte und der
+   "Tagesrest sichern"-Knopf immer dasselbe Ziel meinen. */
+SK.budget.hauptZiel = function (state) {
+  const aktive = state.goals.filter(function (g) { return !g.archiviert; });
+  return aktive.find(function (g) { return g.modus !== 'monatlich'; }) || aktive[0] || null;
 };
 
 /* =====================================================================
@@ -188,7 +200,10 @@ SK.budget.dayInfo = function (state, d) {
     tagesbudget: tagesbudget,
     abflussHeute: abflussHeute,           // alles (Ausgaben + Sparen) heute
     heuteNochVerfuegbar: tagesbudget - abflussHeute,
-    unterBudget: abflussHeute <= tagesbudget
+    // Ein Tag OHNE Ausgaben gilt immer als "unter Budget" – auch wenn das
+    // Tagesbudget durch frueheres Mehr-Ausgeben rechnerisch negativ ist.
+    // Sonst wuerde ein disziplinierter Null-Tag die Streak abreissen.
+    unterBudget: abflussHeute === 0 || abflussHeute <= tagesbudget
   };
 };
 
@@ -383,6 +398,15 @@ SK.budget.debtOpen = function (debt) {
 SK.budget.debtsTotalOpen = function (state) {
   let summe = 0;
   for (const d of state.debts) { if (!d.erledigt) summe += SK.budget.debtOpen(d); }
+  return summe;
+};
+
+/* Summe der noch offenen BUSSEN (Posten mit kind==='busse'). */
+SK.budget.finesOpen = function (state) {
+  let summe = 0;
+  for (const d of state.debts) {
+    if (d.kind === 'busse' && !d.erledigt) summe += SK.budget.debtOpen(d);
+  }
   return summe;
 };
 

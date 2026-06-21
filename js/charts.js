@@ -110,6 +110,42 @@ SK.charts.lineChart = function (el, serie) {
 };
 
 /* ---------------------------------------------------------------------
+   spark(values, opts)  ->  liefert ein kleines Sparkline-SVG als Text.
+   Wird fuer die Krypto-Karten und den Hero benutzt.
+   Rein: Array von Zahlen (Kursverlauf), opts {w,h,color}.
+   Raus: SVG-String (oder '' wenn zu wenig Daten).
+   Steigt der letzte Wert ueber den ersten -> gruen, sonst rot.
+   --------------------------------------------------------------------- */
+SK.charts.spark = function (values, opts) {
+  opts = opts || {};
+  if (!values || values.length < 2) return '';
+  const w = opts.w || 100, h = opts.h || 32;
+  let min = Infinity, max = -Infinity;
+  for (const v of values) { if (v < min) min = v; if (v > max) max = v; }
+  const range = (max - min) || 1;
+  const n = values.length;
+  let line = '';
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * w;
+    const y = (h - 2) - ((values[i] - min) / range) * (h - 4);
+    line += x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+  }
+  line = line.trim();
+  const up = values[n - 1] >= values[0];
+  const color = opts.color || (up ? cssVar('--accent', '#19e3a6') : cssVar('--red', '#ff5d6c'));
+  const id = 'sp' + Math.round(min * 1000 % 100000) + n;
+  const area = line + ' ' + w + ',' + h + ' 0,' + h;
+  return '<svg class="spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" aria-hidden="true">'
+    + '<defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1">'
+    + '<stop offset="0" stop-color="' + color + '" stop-opacity="0.28"/>'
+    + '<stop offset="1" stop-color="' + color + '" stop-opacity="0"/></linearGradient></defs>'
+    + '<polygon points="' + area + '" fill="url(#' + id + ')"/>'
+    + '<polyline points="' + line + '" fill="none" stroke="' + color + '" stroke-width="1.8" '
+    + 'stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'
+    + '</svg>';
+};
+
+/* ---------------------------------------------------------------------
    donut(el, data)
    Zeichnet ein Ringdiagramm der Ausgaben nach Kategorie.
    Rein:

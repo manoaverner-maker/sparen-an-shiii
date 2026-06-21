@@ -27,11 +27,17 @@ Die App läuft komplett **offline** auf deinem Gerät, speichert alles **lokal**
 | **Heute** | Grosse Zahl „Heute noch verfügbar" mit Ampelfarbe (grün/gelb/rot), Tempo-Warnung, Hauptsparziel, letzte Ausgaben. |
 | **Erfassen** (＋) | Ausgabe in Sekunden eintragen: Betrag, Kategorie, optionale Notiz. |
 | **Verlauf** | Alle Buchungen, nach Tag gruppiert, filterbar, einzeln bearbeit- und löschbar. |
-| **Ziele** | Mehrere Sparziele mit Fortschrittsbalken, benötigter Sparrate, Einzahlen-Knopf. |
+| **Ziele** | Sparziele in zwei Arten: *Ziel mit Datum* (z.B. Kroatien) und *fester Monats-Topf* (z.B. Motorrad 250/Monat, Sparkonto 250/Monat). Fortschritt, benötigte Rate, Einzahlen-Knopf. |
 | **Abos** | Abo-Radar mit Gesamtsumme, Erinnerung 3 Tage vor Verlängerung, aktiv/gekündigt-Schalter. |
-| **Schulden** | Einmalige Schulden/Sonderausgaben als eigener Topf: Posten mit Teilzahlungen, Fortschritt, Fälligkeit, Archiv – getrennt vom Tagesbudget. |
+| **Schulden & Bussen** | Einmalige Schulden/Sonderausgaben **und Bussen** als eigener Topf: Posten mit Teilzahlungen, Fortschritt, Fälligkeit, Archiv – getrennt vom Tagesbudget. |
+| **Märkte** | Live-Krypto-Kurse (Ethereum zuerst, dazu BTC/SOL) von CoinGecko: Preis, 24h/7d/30d, Marktwert, Allzeithoch, 7-Tage-Sparkline. Offline werden die letzten Werte gezeigt. *Keine Anlageberatung.* |
+| **KI-Coach** | **Smart-Analyse** (läuft offline auf dem Gerät, ohne Schlüssel) + optional echte Analysen von Claude (eigener Anthropic-API-Schlüssel). |
+| **Geld-Ideen** | Bewährte, recherchierte Wege zum Geldverdienen/-sparen (Schweiz) + optional eine täglich frische Idee von Claude. |
+| **Listen** | Eigene Listen/Wunschliste mit Preisen und Abhaken – rein informativ. |
 | **Statistik** | Monatsverlauf (Soll gegen Ist), Tortendiagramm nach Kategorie, Streak, Ø pro Tag/Woche, Hochrechnung, Vormonatsvergleich, Schulden-Übersicht. |
-| **Einstellungen** | Lohn, Fixkosten, Kategorien, Backup-Export/Import, Zurücksetzen. |
+| **Einstellungen** | Lohn, Fixkosten, Schulden-Rate, KI-Coach, Märkte-Währung, Kategorien, Backup-Export/Import, Zurücksetzen. |
+
+**Navigation:** Unten (Handy) gibt es 5 Tabs – Heute, Verlauf, Statistik, Märkte und **Mehr**. Hinter „Mehr" liegen Ziele, Abos, Schulden, Listen, KI-Coach, Geld-Ideen und Einstellungen. Am Desktop ist alles direkt in der Seitenleiste.
 
 ---
 
@@ -88,7 +94,9 @@ sparen-an-shiii/
 │   ├── icons.js          Sauberes Icon-Set (Inline-SVG statt Emoji)
 │   ├── storage.js        Speichern/Laden (localStorage) + Backup
 │   ├── budget.js         Die Rechen-Logik (Tagesbudget usw.)  ← das Herzstück
-│   ├── charts.js         Selbst gezeichnete Diagramme (SVG)
+│   ├── charts.js         Selbst gezeichnete Diagramme + Sparklines (SVG)
+│   ├── markets.js        Live-Krypto-Kurse von CoinGecko (ohne Schlüssel)
+│   ├── ai.js             KI-Coach: Smart-Analyse (offline) + optional Claude
 │   ├── ui.js             Anzeige: baut alle Bildschirme auf
 │   └── app.js            Steuerung: verbindet Klicks, Daten und Anzeige
 └── assets/
@@ -162,6 +170,41 @@ Damit du den Abbau trotzdem realistisch einplanst, gibt es in den **Einstellunge
 den Schalter **„Monatliche Schulden-Rate vom verfügbaren Geld abziehen"**. Ist er
 aktiv, wird der eingestellte Betrag – genau wie die Sparrate – *vor* der
 Tagesbudget-Berechnung vom verfügbaren Monatsgeld abgezogen.
+
+## Märkte (Krypto-Kurse)
+
+Der **Märkte**-Tab zeigt Live-Kurse von **CoinGecko** – kostenlos und **ohne API-Schlüssel**,
+direkt aus dem Browser. Standard-Watchlist: Ethereum (zuerst), Bitcoin, Solana. Pro Coin:
+Preis, 24h/7d/30d-Veränderung, Marktwert, Allzeithoch und eine 7-Tage-Kurslinie.
+
+- Die Anzeigewährung (CHF/USD) stellst du in den **Einstellungen → Märkte** ein.
+- Jeder erfolgreiche Abruf wird gespeichert; **offline** siehst du die letzten Werte mit „Stand: …".
+- **Wichtig:** Kurse sind reine Information, **keine Anlageberatung**. Echte Aktienkurse gibt es
+  gratis leider nicht zuverlässig direkt im Browser – darum der Fokus auf Krypto.
+
+## KI-Coach (zwei Stufen)
+
+1. **Smart-Analyse** – läuft **immer, offline, kostenlos** auf deinem Gerät. Einfache Regeln
+   werten deine Zahlen aus (Tempo, Hochrechnung, grösste Kategorie, Abo-Anteil, Streak …) und
+   geben Hinweise. Siehst du auch direkt auf dem „Heute"-Screen.
+2. **Echter KI-Coach (optional)** – holt persönliche Analysen und tägliche Geld-Ideen von
+   **Claude (Anthropic)**. Dafür brauchst du einen **eigenen API-Schlüssel** von
+   `console.anthropic.com` (mit API-Guthaben).
+
+> **Wichtig zum echten KI-Coach:**
+> - Der Schlüssel bleibt **nur auf deinem Gerät** (localStorage) und wird ausschliesslich an
+>   Anthropic für deine Anfrage gesendet. **Nie ins Repo schreiben.** (Achtung: ein JSON-Backup
+>   enthält den Schlüssel – bewahre Backups sicher auf.)
+> - Anthropic-API-Guthaben ist **getrennt** von einem „Claude Max"-Abo.
+> - Bei eingeschaltetem Coach wird eine **Zusammenfassung deiner Finanzzahlen** an Anthropic gesendet.
+> - Nichts davon ist personalisierte Finanzberatung.
+
+## Geld-Ideen
+
+Recherchierte, bodenständige Wege (Schweiz 2026), um als junger Gebäudetechnikplaner mehr zu
+verdienen und Vermögen aufzubauen – von Weiterbildung (Techniker HF) über CAD/BIM-Freelancing
+bis Säule 3a, günstige ETF-Sparpläne (DCA) und „Krypto nur klein halten". Mit aktivem KI-Coach
+gibt's zusätzlich täglich eine frische Idee von Claude.
 
 ## Neue Funktionen hinzufügen
 

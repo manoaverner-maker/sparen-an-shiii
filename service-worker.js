@@ -16,7 +16,7 @@
    damit der Browser die neuen Dateien laedt statt der alten.
    ===================================================================== */
 
-const CACHE_NAME = 'sparkurs-v2';
+const CACHE_NAME = 'sparkurs-v3';
 
 /* Alle Dateien, die fuer den Offline-Betrieb gebraucht werden.
    Pfade relativ ("./"), damit es auch in einem Unterordner (GitHub Pages)
@@ -31,6 +31,8 @@ const ASSETS = [
   './js/storage.js',
   './js/budget.js',
   './js/charts.js',
+  './js/markets.js',
+  './js/ai.js',
   './js/ui.js',
   './js/app.js',
   './assets/logo.svg',
@@ -71,6 +73,9 @@ self.addEventListener('activate', function (event) {
    Was neu aus dem Netz kommt, wird gleich mitgespeichert. */
 self.addEventListener('fetch', function (event) {
   if (event.request.method !== 'GET') return;
+  // Fremde Server (CoinGecko, Anthropic) NICHT abfangen – die gehen immer
+  // direkt ans Netz; wir kuemmern uns nur um die eigenen App-Dateien.
+  if (new URL(event.request.url).origin !== self.location.origin) return;
   event.respondWith(
     caches.match(event.request).then(function (treffer) {
       if (treffer) return treffer; // aus dem Cache

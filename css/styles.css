@@ -17,25 +17,41 @@
 
 /* ============ 1. FARBEN & GRUNDWERTE ============ */
 :root {
-  --bg:        #0c1118;   /* tiefer Hintergrund */
-  --surface:   #121a24;   /* Kopfzeile / Navigation */
-  --card:      #161f2b;   /* Karten */
-  --card-2:    #1c2734;   /* hellere Karten / Eingaben */
-  --border:    rgba(255,255,255,0.07);
-  --text:      #e7eef6;   /* Haupttext */
-  --text-dim:  #8b98a9;   /* Nebentext */
+  /* ---- Flaechen: kuehles Navy, je hoeher desto leicht heller (3 Stufen) ---- */
+  --bg:        #090d13;   /* tiefster Hintergrund */
+  --bg-grad:   #0e141d;   /* oberer Verlauf */
+  --surface:   #11171f;   /* Kopfzeile / Navigation / Basis-Karte */
+  --card:      #11171f;   /* Karten (Stufe 1) */
+  --card-2:    #161d27;   /* hellere Karten / Eingaben (Stufe 2) */
+  --card-3:    #1c2530;   /* Popover / gedrueckt / Hero-Panel (Stufe 3) */
+  --border:        rgba(255,255,255,0.07);
+  --border-strong: rgba(255,255,255,0.11);
+
+  --text:      #eaf1f6;   /* Haupttext */
+  --text-dim:  #9fb0bf;   /* Nebentext */
+  --text-3:    #647585;   /* Tertiaer / Captions */
 
   --accent:    #19e3a6;   /* Smaragd/Tuerkis – die Akzentfarbe */
   --accent-2:  #1fc8e3;   /* zweiter Akzent (Verlauf) */
   --gold:      #f4c14b;   /* Gold – Wert/Sparen */
 
-  --green:     #22d39a;   /* Ampel gruen  (gut auf Kurs) */
-  --yellow:    #f5b942;   /* Ampel gelb   (Achtung) */
-  --red:       #ff5d6c;   /* Ampel rot    (ueber Budget) */
+  --green:     #19e3a6;   /* gut auf Kurs (= Akzent) */
+  --yellow:    #f5b942;   /* Achtung */
+  --red:       #ff6b6b;   /* ueber Budget / negativ */
+
+  /* ---- Akzent als LICHT: Verlauf fuer grosse Zahlen + weiche Schein-Farben ---- */
+  --grad-brand: linear-gradient(115deg, #19e3a6 0%, #1fc8e3 100%);
+  --grad-gold:  linear-gradient(115deg, #ffd778 0%, #f4c14b 60%, #d99a2b 100%);
+  --glow-emerald: rgba(25,227,166,0.32);
+  --glow-turq:    rgba(31,200,227,0.28);
+
+  /* ---- Schatten (Tiefe statt flach) ---- */
+  --sh-1: 0 1px 2px rgba(0,0,0,0.40), 0 2px 10px rgba(0,0,0,0.28);
+  --sh-2: 0 4px 16px rgba(0,0,0,0.45), 0 12px 34px rgba(0,0,0,0.30);
+  --shadow: var(--sh-1);
 
   --radius:    18px;
   --radius-sm: 12px;
-  --shadow:    0 8px 30px rgba(0,0,0,0.35);
   --safe-b:    env(safe-area-inset-bottom, 0px);
   --nav-h:     64px;
 }
@@ -48,15 +64,22 @@ html, body { margin: 0; padding: 0; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   background:
-    radial-gradient(1200px 500px at 80% -10%, rgba(31,200,227,0.10), transparent 60%),
-    radial-gradient(900px 500px at -10% 10%, rgba(25,227,166,0.08), transparent 55%),
-    var(--bg);
+    radial-gradient(120% 80% at 50% -10%, var(--bg-grad) 0%, var(--bg) 60%);
+  background-attachment: fixed;
   color: var(--text);
   min-height: 100vh;
   font-size: 16px;
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   padding-bottom: calc(var(--nav-h) + var(--safe-b) + 12px);
+}
+
+/* Feiner Film-Korn-Overlay (nimmt dem Verlauf das Banding, wirkt edler) */
+.grain {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.04;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
 
 h1, h2 { margin: 0; font-weight: 700; }
@@ -70,8 +93,9 @@ h1, h2 { margin: 0; font-weight: 700; }
   position: sticky; top: 0; z-index: 40;
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 16px; padding-top: calc(10px + env(safe-area-inset-top, 0px));
-  background: rgba(18,26,36,0.85);
-  backdrop-filter: blur(12px);
+  background: rgba(11,17,24,0.62);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
   border-bottom: 1px solid var(--border);
 }
 .brand { display: flex; align-items: center; gap: 9px; }
@@ -108,8 +132,9 @@ h1, h2 { margin: 0; font-weight: 700; }
   display: flex; justify-content: space-around; align-items: stretch;
   height: calc(var(--nav-h) + var(--safe-b));
   padding-bottom: var(--safe-b);
-  background: rgba(18,26,36,0.92);
-  backdrop-filter: blur(14px);
+  background: rgba(11,17,24,0.72);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
   border-top: 1px solid var(--border);
 }
 .tab {
@@ -135,17 +160,31 @@ h1, h2 { margin: 0; font-weight: 700; }
 .fab:active { transform: scale(0.9); }
 
 /* ============ 3. BAUSTEINE ============ */
+/* Karte: getoente Flaeche + oben licht-faengender 1px-Rand + Schatten. */
 .card {
-  background: linear-gradient(180deg, var(--card), var(--card) 60%, #14202c);
+  position: relative;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px;
   margin-bottom: 14px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--sh-1), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 .row-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.head-actions { display: flex; gap: 8px; }
 .section-head { font-size: 1.05rem; margin-bottom: 10px; }
-.section-head h2 { font-size: 1.05rem; }
+.section-head h2 { font-size: 1.05rem; display: flex; align-items: center; }
+.label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
+.cap { font-size: 0.72rem; color: var(--text-3); }
+
+/* "Lit"-Karte: Rand verlaeuft von Akzent zu transparent (edelstes Detail). */
+.card--lit { border: 0; }
+.card--lit::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+  background: linear-gradient(140deg, rgba(25,227,166,0.55), rgba(31,200,227,0.18) 42%, transparent 72%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
+}
 .muted { color: var(--text-dim); font-size: 0.9rem; }
 .hidden { display: none !important; }
 
@@ -247,19 +286,27 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 /* ============ 4. EINZELNE BILDSCHIRME ============ */
 
 /* ---- Hero (Heute noch verfuegbar) ---- */
-.hero { text-align: center; padding: 22px 18px; position: relative; overflow: hidden; }
-.hero::before { content: ""; position: absolute; inset: 0; background: radial-gradient(400px 160px at 50% 0%, var(--amp-glow, rgba(34,211,154,0.18)), transparent 70%); pointer-events: none; }
-.hero-label { font-size: 0.9rem; color: var(--text-dim); position: relative; }
-.hero-amount { font-size: 3.4rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; margin: 6px 0 2px; color: var(--amp, var(--green)); position: relative; }
-.hero-amount .cur { font-size: 1.1rem; font-weight: 600; color: var(--text-dim); margin-left: 6px; }
+.hero { text-align: center; padding: 24px 18px 18px; position: relative; isolation: isolate; overflow: hidden; }
+/* zwei weiche Farb-Blooms hinter dem Hero -> Tiefe & "Licht" */
+.hero::before, .hero::after { content: ""; position: absolute; z-index: -1; border-radius: 50%; filter: blur(60px); opacity: .55; pointer-events: none; }
+.hero::before { width: 240px; height: 240px; top: -90px; left: -30px; background: radial-gradient(circle, var(--amp-glow, var(--glow-emerald)), transparent 70%); }
+.hero::after  { width: 200px; height: 200px; top: -50px; right: -40px; background: radial-gradient(circle, var(--glow-turq), transparent 70%); }
+.hero-label { position: relative; }
+.hero-amount { font-size: clamp(44px, 13vw, 60px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.0; margin: 8px 0 2px; position: relative; }
+/* grosse Zahl als Farbverlauf (Akzent), mit feinem Schein */
+.hero-amount#hero-card, .hero .amount-hero,
+.hero-amount { background: var(--amp-grad, var(--grad-brand)); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 18px var(--amp-drop, rgba(25,227,166,0.18))); }
+.hero-amount .cur { -webkit-text-fill-color: var(--text-dim); font-size: 1.1rem; font-weight: 600; margin-left: 6px; }
 .hero-sub { font-size: 0.85rem; color: var(--text-dim); position: relative; }
 .hero-sub strong { color: var(--text); }
+.hero-spark { position: relative; max-width: 220px; margin: 12px auto 0; opacity: .9; }
+.hero-spark .spark { width: 100%; height: 30px; }
 .ampel-bar { height: 8px; border-radius: 999px; background: var(--card-2); overflow: hidden; margin: 12px auto; max-width: 280px; position: relative; }
 .ampel-fill { height: 100%; width: 50%; border-radius: 999px; background: var(--amp, var(--green)); transition: width .7s cubic-bezier(.22,.61,.36,1), background .4s; }
-/* Ampel-Zustaende setzen Farbe + Schein */
-.hero.ampel-gruen { --amp: var(--green); --amp-glow: rgba(34,211,154,0.20); }
-.hero.ampel-gelb  { --amp: var(--yellow); --amp-glow: rgba(245,185,66,0.20); }
-.hero.ampel-rot   { --amp: var(--red);  --amp-glow: rgba(255,93,108,0.22); }
+/* Ampel-Zustaende: Farbe der Zahl, des Balkens und des Scheins */
+.hero.ampel-gruen { --amp: var(--green); --amp-grad: var(--grad-brand); --amp-glow: var(--glow-emerald); --amp-drop: rgba(25,227,166,0.20); }
+.hero.ampel-gelb  { --amp: var(--yellow); --amp-grad: linear-gradient(115deg,#ffd778,#f5b942); --amp-glow: rgba(245,185,66,0.22); --amp-drop: rgba(245,185,66,0.20); }
+.hero.ampel-rot   { --amp: var(--red);  --amp-grad: linear-gradient(115deg,#ff8a8a,#ff5d6c); --amp-glow: rgba(255,107,107,0.24); --amp-drop: rgba(255,107,107,0.22); }
 
 /* ---- Tempo-Karte ---- */
 .pace { display: flex; align-items: center; gap: 14px; }
@@ -457,4 +504,116 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
   #view-heute.is-active { grid-template-columns: 1.2fr 1fr 1fr; }
   #view-heute .hero { grid-column: 1 / -1; }
   #view-heute > .card:last-child { grid-column: 1 / -1; }
+}
+
+/* ============ 8. NEUE BAUSTEINE (v2) ============ */
+
+/* ---- Smart-Analyse Hinweise ---- */
+.insight-list { display: flex; flex-direction: column; gap: 8px; }
+.insight { display: flex; gap: 10px; align-items: flex-start; font-size: 0.88rem;
+  padding: 9px 11px; border-radius: 12px; background: var(--card-2); border: 1px solid var(--border); }
+.insight-ico { flex: none; display: inline-flex; margin-top: 1px; }
+.insight-ico .ic { width: 18px; height: 18px; }
+.insight--gut  { border-color: rgba(25,227,166,0.30); }
+.insight--gut  .insight-ico { color: var(--green); }
+.insight--warn { border-color: rgba(255,107,107,0.32); }
+.insight--warn .insight-ico { color: var(--red); }
+.insight--info .insight-ico { color: var(--accent-2); }
+
+/* ---- ETH-Mini auf dem Dashboard ---- */
+.eth-mini { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+.eth-mini:active { transform: scale(.985); }
+.eth-mini-left { display: flex; align-items: center; gap: 12px; }
+.eth-mini-name { font-weight: 700; }
+.eth-mini-right { text-align: right; }
+.eth-mini-price { font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* ---- Veraenderungs-Abzeichen (Kurse) ---- */
+.chg-badge { display: inline-flex; align-items: center; gap: 2px; font-size: 0.8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.chg-badge.pos { color: var(--green); }
+.chg-badge.neg { color: var(--red); }
+.chg-badge .ic { width: 13px; height: 13px; }
+
+/* ---- Krypto-Karten ---- */
+.coin-card { padding: 14px 16px; }
+.coin-top { display: flex; align-items: center; justify-content: space-between; }
+.coin-id { display: flex; align-items: center; gap: 11px; }
+.coin-name { font-weight: 700; }
+.coin-price { text-align: right; }
+.coin-price .num { font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.coin-spark { margin: 8px 0 6px; height: 36px; }
+.coin-spark .spark { width: 100%; height: 36px; }
+.coin-meta { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; font-size: 0.8rem; color: var(--text-dim); }
+.coin-meta .chg-badge { font-size: 0.78rem; }
+
+/* ---- Hinweis-/Disclaimer-Karte ---- */
+.disclaimer { display: flex; gap: 10px; align-items: flex-start; font-size: 0.82rem; color: var(--text-dim);
+  background: var(--card-2); border-color: var(--border); }
+.disclaimer .ic-pre { color: var(--yellow); margin-top: 1px; }
+.disclaimer strong { color: var(--text); }
+
+/* ---- KI-Ausgabe ---- */
+.ai-out { font-size: 0.92rem; line-height: 1.5; }
+.ai-out p { margin: 0 0 10px; }
+.ai-out ul { margin: 0 0 10px; padding-left: 18px; }
+.ai-out li { margin: 3px 0; }
+.ai-error { color: var(--red); font-size: 0.88rem; }
+
+/* ---- Skeleton-Shimmer (Ladezustand) ---- */
+.skeleton { border-radius: 10px;
+  background: linear-gradient(100deg, var(--card) 30%, var(--card-2) 50%, var(--card) 70%);
+  background-size: 200% 100%; animation: sh 1.3s ease-in-out infinite; }
+@keyframes sh { to { background-position: -200% 0; } }
+
+/* ---- Geld-Ideen ---- */
+.idea-cat { margin-bottom: 14px; }
+.idea-cat .label { display: block; margin-bottom: 8px; color: var(--accent); }
+.idea { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.idea:last-child { border-bottom: none; }
+.idea-title { font-weight: 650; font-size: 0.95rem; }
+.idea-desc { font-size: 0.85rem; color: var(--text-dim); margin-top: 3px; }
+
+/* ---- Listen / Wunschliste ---- */
+.list-card .section-head { margin-bottom: 8px; }
+.list-items { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
+.list-item { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-bottom: 1px solid var(--border); }
+.list-item:last-child { border-bottom: none; }
+.list-item.done .li-text { text-decoration: line-through; color: var(--text-3); }
+.li-check { flex: none; width: 22px; height: 22px; border-radius: 7px; border: 1.5px solid var(--border-strong);
+  background: var(--card-2); cursor: pointer; display: grid; place-items: center; color: var(--accent); padding: 0; }
+.list-item.done .li-check { background: rgba(25,227,166,0.18); border-color: var(--accent); }
+.li-check .ic { width: 14px; height: 14px; }
+.li-text { flex: 1; min-width: 0; }
+.li-amt { font-variant-numeric: tabular-nums; color: var(--text-dim); font-size: 0.9rem; }
+.li-del { background: none; border: none; color: var(--text-3); cursor: pointer; padding: 2px; }
+.li-del .ic { width: 16px; height: 16px; }
+.list-sum { font-size: 0.85rem; color: var(--text-dim); border-top: 1px solid var(--border); padding-top: 8px; }
+.list-sum { font-weight: 600; }
+
+/* ---- "Mehr"-Hub (mobil) ---- */
+.more-list { display: flex; flex-direction: column; gap: 8px; }
+.more-row { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; cursor: pointer;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 14px 16px; color: var(--text); box-shadow: var(--sh-1), inset 0 1px 0 rgba(255,255,255,0.04); transition: transform .12s; }
+.more-row:active { transform: scale(.985); }
+.more-row .ico { display: inline-flex; color: var(--accent); }
+.more-row .ico .ic { width: 22px; height: 22px; }
+.more-label { flex: 1; font-weight: 600; }
+.more-chev { color: var(--text-3); display: inline-flex; }
+.more-chev .ic { width: 18px; height: 18px; }
+
+/* ---- Badges ---- */
+.kind-badge { font-size: 0.66rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+  color: var(--yellow); background: rgba(245,185,66,0.14); border: 1px solid rgba(245,185,66,0.35);
+  padding: 1px 7px; border-radius: 999px; vertical-align: middle; }
+.goal-badge.alt { background: rgba(31,200,227,0.16); color: var(--accent-2); }
+
+/* ---- Refresh-Knopf dreht beim Laden ---- */
+.spinning .ic { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Auf dem Desktop sind Märkte/Ideen-Karten zweispaltig schoener */
+@media (min-width: 860px) {
+  #mk-liste { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  #mk-liste .coin-card { margin-bottom: 0; }
 }

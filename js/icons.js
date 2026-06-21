@@ -44,6 +44,17 @@ SK.ICONS = {
   chevron:  '<path d="M6 9.5l6 6 6-6"/>',
   download: '<path d="M12 4v10.5"/><path d="M8 11l4 4 4-4"/><path d="M5 19.5h14"/>',
   upload:   '<path d="M12 20V9.5"/><path d="M8 13l4-4 4 4"/><path d="M5 4.5h14"/>',
+  coin:     '<circle cx="12" cy="12" r="8.4"/><path d="M9.6 8.7h3.6a1.9 1.9 0 0 1 0 3.8H10"/><path d="M10 8.7V16"/><path d="M9.6 12.5h3.8"/>',
+  ai:       '<path d="M12 3l1.7 4.6L18 9l-4.3 1.4L12 15l-1.7-4.6L6 9l4.3-1.4Z"/><path d="M18 14l.8 2.1 2.2.7-2.2.8L18 20l-.8-2.1-2.2-.8 2.2-.7Z"/>',
+  star:     '<path d="M12 3.4l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.9l-5.2 2.5 1-5.8L2.6 9.5l5.8-.8Z"/>',
+  grid:     '<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>',
+  refresh:  '<path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5"/><path d="M20 3.5V9h-5.5"/><path d="M20 12a8 8 0 0 1-13.7 5.6L4 15.5"/><path d="M4 20.5V15h5.5"/>',
+  arrowUp:  '<path d="M12 19V6"/><path d="M6.5 11.5L12 6l5.5 5.5"/>',
+  arrowDown:'<path d="M12 5v13"/><path d="M6.5 12.5L12 18l5.5-5.5"/>',
+  lightbulb:'<path d="M9.2 17.5h5.6"/><path d="M10 20.5h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.5.4.9 1 .9 1.7H14.7c0-.7.4-1.3.9-1.7A6 6 0 0 0 12 3Z"/>',
+  ticket:   '<path d="M4 8a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2.2a1.8 1.8 0 0 0 0 3.6V16a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2.2a1.8 1.8 0 0 0 0-3.6Z"/><path d="M13 7.5v9"/>',
+  key:      '<circle cx="8" cy="15" r="3.8"/><path d="M10.7 12.3L19 4"/><path d="M16 4h3v3"/><path d="M14.2 5.8l2.4 2.4"/>',
+  chevronR: '<path d="M9 5.5l6.5 6.5L9 18.5"/>',
 
   /* --- Ausgaben-Kategorien --- */
   food:     '<path d="M6 3v6.5a2 2 0 0 0 4 0V3"/><path d="M8 9.5V21"/><path d="M16.5 3c-1.6 0-2.6 1.7-2.6 4.2s1 4.3 2.6 4.3"/><path d="M16.5 3v18"/>',

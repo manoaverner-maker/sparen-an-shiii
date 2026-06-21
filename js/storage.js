@@ -40,7 +40,30 @@ function mergeDefaults(saved) {
   out.abos = saved.abos || def.abos;
   out.entries = saved.entries || [];
   out.debts = saved.debts || [];
+  out.lists = saved.lists || def.lists;
+  out.watchlist = saved.watchlist || def.watchlist;
+  out.cryptoCache = saved.cryptoCache || { ts: 0, data: null };
+  out.moneyResearch = saved.moneyResearch || { datum: '', text: '' };
   out.dailyLog = saved.dailyLog || {};
+
+  /* Einmalige v2-Nachruestung fuer bereits bestehende Installationen:
+     fuegt die monatlichen Spar-Toepfe (Motorrad/Sparkonto) und die
+     Wunschliste hinzu, falls sie noch fehlen. Laeuft genau einmal.
+     Wichtig: am GESPEICHERTEN Zustand pruefen (nicht am mit Defaults
+     aufgefuellten "out"), sonst greift der Marker nie. */
+  if (!(saved.meta && saved.meta.seedV2)) {
+    // alte Ziele auf das neue Format normalisieren (modus/monatlich ergaenzen)
+    out.goals.forEach(function (g) {
+      if (!g.modus) g.modus = 'ziel';
+      if (g.monatlich == null) g.monatlich = 0;
+    });
+    const habenIds = out.goals.map(function (g) { return g.id; });
+    def.goals.forEach(function (g) {
+      if (g.modus === 'monatlich' && habenIds.indexOf(g.id) === -1) out.goals.push(g);
+    });
+    if (!out.lists || !out.lists.length) out.lists = def.lists;
+    out.meta.seedV2 = true;
+  }
   return out;
 }
 

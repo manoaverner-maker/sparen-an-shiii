@@ -94,25 +94,49 @@ SK.defaultState = function () {
       schuldenRateAktiv: false,// Soll eine monatliche Schulden-Rate vom verfuegbaren Geld
                                //   abgezogen werden (genau wie die Sparrate)?
       schuldenRate: 0,         // Wenn aktiv: dieser Betrag pro Monat fuer den Schuldenabbau.
-      waehrung: 'CHF'
+      waehrung: 'CHF',
+
+      /* ---- KI-Coach (optional, braucht eigenen Anthropic-API-Schluessel) ----
+         Die App kann optional echte Analysen von Claude (Anthropic) holen.
+         Der Schluessel bleibt NUR auf deinem Geraet (localStorage) und wird
+         nie ins Repo geschrieben. Kostet API-Guthaben (getrennt von Claude Max). */
+      aiAktiv: false,          // KI-Coach eingeschaltet?
+      aiKey: '',               // dein Anthropic-API-Schluessel (sk-ant-...)
+      aiModel: 'claude-opus-4-8', // welches Modell (in den Einstellungen waehlbar)
+
+      /* ---- Maerkte / Krypto ---- */
+      cryptoWaehrung: 'chf'     // Anzeige-Waehrung fuer Kurse: 'chf' oder 'usd'
     },
 
     /* ---- Ausgabenkategorien ---- */
     categories: SK.DEFAULT_CATEGORIES.map(function (c) { return Object.assign({}, c); }),
 
     /* ---- Sparziele (Funktion: Sparziel) ----
-       Mehrere moeglich. "saved" wird NICHT hier gespeichert, sondern
-       jederzeit aus den Spar-Buchungen + startGespart berechnet
-       (siehe budget.js -> SK.budget.goalSaved). */
+       Mehrere moeglich. "saved" (bereits gespart) wird NICHT hier gespeichert,
+       sondern jederzeit aus den Spar-Buchungen + startGespart berechnet
+       (siehe budget.js -> SK.budget.goalSaved).
+
+       Es gibt ZWEI Arten von Zielen (Feld "modus"):
+         'ziel'      = klassisches Ziel: Zielbetrag bis zu einem Datum. Die
+                       benoetigte Monatsrate ergibt sich aus (Ziel-Gespart)/Monate.
+         'monatlich' = fester Spar-Topf ohne Enddatum: jeden Monat ein fixer
+                       Betrag (z.B. 250 CHF Motorradkosten). Dieser feste Betrag
+                       wird – wie bei 'ziel' – vorab vom verfuegbaren Geld reserviert. */
     goals: [
       {
-        id: 'kroatien',
-        name: 'Kroatien',
-        ziel: 1000,               // Zielbetrag in CHF
-        startGespart: 0,          // was du beim Anlegen schon hattest
-        zieldatum: '2026-08-14',  // Wunschdatum JJJJ-MM-TT
-        farbe: '#19e3a6',
-        archiviert: false
+        id: 'kroatien', name: 'Kroatien', modus: 'ziel',
+        ziel: 1000, monatlich: 0, startGespart: 0,
+        zieldatum: '2026-08-14', farbe: '#19e3a6', archiviert: false
+      },
+      {
+        id: 'motorrad', name: 'Motorrad', modus: 'monatlich',
+        ziel: 0, monatlich: 250, startGespart: 0,
+        zieldatum: '', farbe: '#1fc8e3', archiviert: false
+      },
+      {
+        id: 'sparkonto', name: 'Sparkonto', modus: 'monatlich',
+        ziel: 0, monatlich: 250, startGespart: 0,
+        zieldatum: '', farbe: '#f4c14b', archiviert: false
       }
     ],
 
@@ -149,12 +173,26 @@ SK.defaultState = function () {
        Einmalige groessere Verpflichtungen (z.B. Werkstattrechnung), die
        getrennt vom Alltags-Budget abbezahlt werden. Ein Posten sieht so aus:
          { id, name, gesamt: Zahl, faellig:'JJJJ-MM-TT'|null, notiz: Text,
-           erledigt: false, zahlungen: [{ id, datum, betrag, notiz }] }
-       WICHTIG: Diese Posten und ihre Teilzahlungen beeinflussen das normale
+           erledigt: false, kind:'schuld'|'busse', zahlungen: [{ id, datum, betrag, notiz }] }
+       "kind" unterscheidet normale Sonderausgaben ('schuld') von Bussen/Strafen
+       ('busse') – beides liegt im selben Topf und beeinflusst das normale
        Tagesbudget NICHT. Nur die optionale monatliche Schulden-Rate aus den
        Einstellungen (settings.schuldenRate) wird – wie die Sparrate – vorab
        vom verfuegbaren Monatsgeld abgezogen. */
     debts: [],
+
+    /* ---- Eigene Listen / Wunschliste (Funktion: Listen) ----
+       Frei anlegbare Listen, z.B. eine Wunschliste mit Preisen. Eine Liste:
+         { id, name, icon, items: [{ id, text, betrag (optional), erledigt }] }
+       Praktisch: die Summe einer Wunschliste zeigt dir, was du noch ansparen
+       musst – rein informativ, fliesst NICHT ins Budget. */
+    lists: [
+      { id: 'wunsch', name: 'Wunschliste', icon: 'star', items: [] }
+    ],
+
+    /* ---- Krypto-Watchlist (Funktion: Maerkte) ----
+       Coin-IDs von CoinGecko. Ethereum zuerst (dein Favorit). */
+    watchlist: ['ethereum', 'bitcoin', 'solana'],
 
     /* ---- Tages-Logbuch (Funktion: Streak) ----
        Pro Tag merken wir uns: wie hoch war das Tagesbudget und wie viel
@@ -162,10 +200,17 @@ SK.defaultState = function () {
        Schluessel = Datum, Wert = { budget, ausgegeben, unterBudget }. */
     dailyLog: {},
 
+    /* ---- zwischengespeicherte Krypto-Kurse (fuer Offline-Anzeige) ---- */
+    cryptoCache: { ts: 0, data: null },
+
+    /* ---- KI-Recherche "Geld verdienen" (taeglich aktualisiert, gecacht) ---- */
+    moneyResearch: { datum: '', text: '' },
+
     /* ---- interne Notizen ---- */
     meta: {
       erstellt: SK.dateKey(),  // Datum des ersten Starts
-      lastOpen: SK.dateKey()   // zuletzt geoeffnet (fuer Monatswechsel-Erkennung)
+      lastOpen: SK.dateKey(),  // zuletzt geoeffnet (fuer Monatswechsel-Erkennung)
+      seedV2: true             // Marker: v2-Startdaten (Motorrad/Sparkonto/Listen) gesetzt
     }
   };
 };
