@@ -45,13 +45,13 @@
   --glow-emerald: rgba(25,227,166,0.32);
   --glow-turq:    rgba(31,200,227,0.28);
 
-  /* ---- Schatten (Tiefe statt flach) ---- */
-  --sh-1: 0 1px 2px rgba(0,0,0,0.40), 0 2px 10px rgba(0,0,0,0.28);
-  --sh-2: 0 4px 16px rgba(0,0,0,0.45), 0 12px 34px rgba(0,0,0,0.30);
+  /* ---- Schatten: weich & grossflaechig (Tiefe ohne Raender) ---- */
+  --sh-1: 0 10px 30px -16px rgba(0,0,0,0.62);
+  --sh-2: 0 22px 50px -22px rgba(0,0,0,0.66);
   --shadow: var(--sh-1);
 
-  --radius:    18px;
-  --radius-sm: 12px;
+  --radius:    20px;
+  --radius-sm: 13px;
   --safe-b:    env(safe-area-inset-bottom, 0px);
   --nav-h:     64px;
 }
@@ -63,16 +63,20 @@ html, body { margin: 0; padding: 0; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Sehr dezenter vertikaler Verlauf: oben minimal heller als unten -> ruhige
+     Tiefe ohne flaches Schwarz. Plus ein kaum sichtbarer Tuerkis-Hauch ganz oben. */
   background:
-    radial-gradient(120% 80% at 50% -10%, var(--bg-grad) 0%, var(--bg) 60%);
+    radial-gradient(140% 70% at 50% -20%, rgba(31,200,227,0.045), transparent 60%),
+    linear-gradient(180deg, #0e141d 0%, #0a0e15 55%, #07090f 100%);
   background-attachment: fixed;
   color: var(--text);
   min-height: 100vh;
   font-size: 16px;
-  line-height: 1.4;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  padding-bottom: calc(var(--nav-h) + var(--safe-b) + 12px);
+  /* genug Platz unten, damit der runde +Knopf nie die letzte Karte verdeckt */
+  padding-bottom: calc(var(--nav-h) + var(--safe-b) + 88px);
 }
 
 /* Feiner Film-Korn-Overlay (nimmt dem Verlauf das Banding, wirkt edler) */
@@ -83,7 +87,7 @@ body {
 }
 
 h1, h2 { margin: 0; font-weight: 700; }
-.view-title { font-size: 1.5rem; margin: 4px 0 14px; }
+.view-title { font-size: 1.5rem; margin: 6px 0 18px; letter-spacing: -0.01em; }
 
 /* Tabellen-Ziffern: Zahlen sind gleich breit -> ruhiges Hoch-/Runterzaehlen */
 .hero-amount, .mini-val, .abo-total-val, .amount-input input { font-variant-numeric: tabular-nums; }
@@ -117,7 +121,7 @@ h1, h2 { margin: 0; font-weight: 700; }
 
 /* ---- Layout-Container ---- */
 .layout { display: block; }
-.content { max-width: 760px; margin: 0 auto; padding: 16px; }
+.content { max-width: 760px; margin: 0 auto; padding: 18px 18px 6px; }
 
 /* ---- Views: nur die aktive ist sichtbar ---- */
 .view { display: none; }
@@ -150,25 +154,29 @@ h1, h2 { margin: 0; font-weight: 700; }
 
 /* ---- Schwebender + Knopf ---- */
 .fab {
-  position: fixed; right: 18px; bottom: calc(var(--nav-h) + var(--safe-b) + 14px); z-index: 41;
+  position: fixed; right: 18px; bottom: calc(var(--nav-h) + var(--safe-b) + 16px); z-index: 41;
   width: 58px; height: 58px; border-radius: 50%; border: none; cursor: pointer;
   background: linear-gradient(145deg, var(--accent), var(--accent-2));
   color: #04211a; font-size: 2rem; font-weight: 300; line-height: 1;
-  box-shadow: 0 10px 26px rgba(25,227,166,0.45);
-  transition: transform .14s;
+  box-shadow: 0 12px 28px -8px rgba(25,227,166,0.5);
+  transition: transform .16s cubic-bezier(.22,.61,.36,1), opacity .2s;
 }
-.fab:active { transform: scale(0.9); }
+.fab:active { transform: scale(0.88); }
+/* Auf Screens mit eigenem oberen Aktionsbutton wird der runde +Knopf
+   ausgeblendet (pro Screen nur EIN Hinzufuegen-Knopf). */
+body.no-fab .fab { display: none; }
 
 /* ============ 3. BAUSTEINE ============ */
-/* Karte: getoente Flaeche + oben licht-faengender 1px-Rand + Schatten. */
+/* Karte: randlos. Tiefe entsteht nur durch die leicht hellere Flaeche und
+   einen sehr weichen, grossflaechigen Schatten – nicht durch Umrandung. */
 .card {
   position: relative;
   background: var(--card);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius);
-  padding: 16px;
-  margin-bottom: 14px;
-  box-shadow: var(--sh-1), inset 0 1px 0 rgba(255,255,255,0.05);
+  padding: 18px;
+  margin-bottom: 16px;
+  box-shadow: var(--sh-1), inset 0 1px 0 rgba(255,255,255,0.035);
 }
 .row-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .head-actions { display: flex; gap: 8px; }
@@ -177,11 +185,12 @@ h1, h2 { margin: 0; font-weight: 700; }
 .label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
 .cap { font-size: 0.72rem; color: var(--text-3); }
 
-/* "Lit"-Karte: Rand verlaeuft von Akzent zu transparent (edelstes Detail). */
+/* "Lit"-Karte: nur ein sehr feiner, einfarbiger Akzent-Hauch am oberen Rand
+   (zurueckhaltend statt bunter Leuchtrahmen). */
 .card--lit { border: 0; }
 .card--lit::before {
   content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
-  background: linear-gradient(140deg, rgba(25,227,166,0.55), rgba(31,200,227,0.18) 42%, transparent 72%);
+  background: linear-gradient(150deg, rgba(25,227,166,0.32), transparent 48%);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
 }
@@ -194,7 +203,11 @@ h1, h2 { margin: 0; font-weight: 700; }
   font-size: 0.95rem; font-weight: 600; cursor: pointer; color: var(--text);
   background: var(--card-2); transition: transform .12s, filter .2s, background .2s;
 }
-.btn:active { transform: scale(0.97); }
+.btn { transition: transform .13s cubic-bezier(.22,.61,.36,1), filter .2s, background .2s; }
+.btn:active { transform: scale(0.96); }
+/* Belohnendes Tap-Feedback: kleine Tipp-Flaechen sinken beim Druecken sanft ein */
+.chip, .icon-btn, .eth-mini, .li-check, .archiv-head, .side-link, .tab { transition: transform .12s cubic-bezier(.22,.61,.36,1), background .2s, color .2s, border-color .2s; }
+.chip:active, .icon-btn:active, .eth-mini:active, .li-check:active, .more-chev:active, .tab:active { transform: scale(0.94); }
 .btn-accent { background: linear-gradient(145deg, var(--accent), var(--accent-2)); color: #04211a; border: none; }
 .btn-ghost { background: var(--card-2); border: 1px solid var(--border); color: var(--text); }
 .btn-danger { background: rgba(255,93,108,0.12); border: 1px solid rgba(255,93,108,0.35); color: var(--red); }
@@ -288,9 +301,9 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 /* ---- Hero (Heute noch verfuegbar) ---- */
 .hero { text-align: center; padding: 24px 18px 18px; position: relative; isolation: isolate; overflow: hidden; }
 /* zwei weiche Farb-Blooms hinter dem Hero -> Tiefe & "Licht" */
-.hero::before, .hero::after { content: ""; position: absolute; z-index: -1; border-radius: 50%; filter: blur(60px); opacity: .55; pointer-events: none; }
+.hero::before, .hero::after { content: ""; position: absolute; z-index: -1; border-radius: 50%; filter: blur(64px); opacity: .38; pointer-events: none; }
 .hero::before { width: 240px; height: 240px; top: -90px; left: -30px; background: radial-gradient(circle, var(--amp-glow, var(--glow-emerald)), transparent 70%); }
-.hero::after  { width: 200px; height: 200px; top: -50px; right: -40px; background: radial-gradient(circle, var(--glow-turq), transparent 70%); }
+.hero::after  { width: 200px; height: 200px; top: -50px; right: -40px; background: radial-gradient(circle, var(--glow-turq), transparent 70%); opacity: .26; }
 .hero-label { position: relative; }
 .hero-amount { font-size: clamp(44px, 13vw, 60px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.0; margin: 8px 0 2px; position: relative; }
 /* grosse Zahl als Farbverlauf (Akzent), mit feinem Schein */
@@ -329,7 +342,8 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 
 /* ---- Sparziel-Mini ---- */
 .goal-mini-name { font-weight: 700; }
-.goal-mini-pct { color: var(--accent); font-weight: 700; }
+/* Prozentzahl ruhig in Weiss (Akzent bleibt dem Fortschrittsbalken vorbehalten) */
+.goal-mini-pct { color: var(--text); font-weight: 700; }
 .goal-mini .progress { margin: 10px 0 8px; }
 .goal-mini-text { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 6px; }
 
@@ -347,8 +361,10 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 .abo-total-val { font-size: 2.2rem; font-weight: 800; color: var(--accent); margin-top: 2px; }
 .abo-total-sub { font-size: 0.8rem; color: var(--text-dim); margin-top: 4px; }
 .abo {
-  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
-  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 12px; padding: 13px 15px;
+  background: var(--card); border: 1px solid transparent; border-radius: var(--radius-sm); margin-bottom: 9px;
+  box-shadow: var(--sh-1), inset 0 1px 0 rgba(255,255,255,0.03);
+  transition: transform .12s cubic-bezier(.22,.61,.36,1);
 }
 .abo.inactive { opacity: 0.5; }
 .abo.soon { border-color: rgba(245,185,66,0.55); background: linear-gradient(180deg, rgba(245,185,66,0.08), var(--card)); }
@@ -593,9 +609,9 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 /* ---- "Mehr"-Hub (mobil) ---- */
 .more-list { display: flex; flex-direction: column; gap: 8px; }
 .more-row { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; cursor: pointer;
-  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm);
-  padding: 14px 16px; color: var(--text); box-shadow: var(--sh-1), inset 0 1px 0 rgba(255,255,255,0.04); transition: transform .12s; }
-.more-row:active { transform: scale(.985); }
+  background: var(--card); border: 1px solid transparent; border-radius: var(--radius-sm);
+  padding: 15px 16px; color: var(--text); box-shadow: var(--sh-1), inset 0 1px 0 rgba(255,255,255,0.03); transition: transform .13s cubic-bezier(.22,.61,.36,1); }
+.more-row:active { transform: scale(.975); }
 .more-row .ico { display: inline-flex; color: var(--accent); }
 .more-row .ico .ic { width: 22px; height: 22px; }
 .more-label { flex: 1; font-weight: 600; }
@@ -617,3 +633,32 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
   #mk-liste { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   #mk-liste .coin-card { margin-bottom: 0; }
 }
+
+/* ============ 9. FERIENMODUS ============ */
+.fe-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/* min-width:0 laesst die Spalten schmaler werden als der Inhalt der
+   Datums-/Zahlenfelder – sonst laeuft die Zeile auf dem Handy ueber. */
+.fe-row2 .field { margin-bottom: 14px; min-width: 0; }
+.fe-row2 input { min-width: 0; }
+.fe-setup .field small { display: block; margin-top: 5px; }
+/* Fremdwaehrungs-Zeile unter der grossen Zahl */
+.fe-fx { color: var(--text-dim); font-size: 0.95rem; font-weight: 600; margin-top: 2px; position: relative; }
+/* Rueckblick */
+.fe-review-head { font-size: 0.95rem; color: var(--text-dim); margin-bottom: 10px; }
+.fe-review-head strong { color: var(--text); font-size: 1.2rem; font-weight: 800; }
+.fe-cat-list { display: flex; flex-direction: column; gap: 7px; margin-top: 14px; }
+/* Schnell-Links */
+.fe-links .ql-group .label { display: block; margin: 14px 0 9px; color: var(--text-dim); }
+.fe-links .ql-group:first-of-type .label { margin-top: 4px; }
+.fe-quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ql {
+  display: flex; align-items: center; gap: 10px; padding: 13px 14px; border-radius: var(--radius-sm);
+  background: var(--card-2); border: 1px solid transparent; color: var(--text); text-decoration: none;
+  font-size: 0.9rem; font-weight: 600; box-shadow: var(--sh-1), inset 0 1px 0 rgba(255,255,255,0.03);
+  transition: transform .12s cubic-bezier(.22,.61,.36,1);
+}
+.ql:active { transform: scale(0.96); }
+.ql .ico { display: inline-flex; color: var(--text-dim); flex: none; }
+.ql .ico .ic { width: 20px; height: 20px; }
+
+@media (min-width: 600px) { .fe-quick-grid { grid-template-columns: 1fr 1fr 1fr; } }

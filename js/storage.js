@@ -45,6 +45,10 @@ function mergeDefaults(saved) {
   out.cryptoCache = saved.cryptoCache || { ts: 0, data: null };
   out.moneyResearch = saved.moneyResearch || { datum: '', text: '' };
   out.dailyLog = saved.dailyLog || {};
+  /* Ferienmodus: fehlende Felder mit den Standardwerten auffuellen, vorhandene
+     behalten (so bekommen Bestandsdaten den neuen Topf, ohne Datenverlust). */
+  out.ferien = Object.assign({}, def.ferien, saved.ferien || {});
+  if (!Array.isArray(out.ferien.ausgaben)) out.ferien.ausgaben = [];
 
   /* Einmalige v2-Nachruestung fuer bereits bestehende Installationen:
      fuegt die monatlichen Spar-Toepfe (Motorrad/Sparkonto) und die

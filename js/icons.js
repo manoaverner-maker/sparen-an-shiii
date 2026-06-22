@@ -56,6 +56,17 @@ SK.ICONS = {
   key:      '<circle cx="8" cy="15" r="3.8"/><path d="M10.7 12.3L19 4"/><path d="M16 4h3v3"/><path d="M14.2 5.8l2.4 2.4"/>',
   chevronR: '<path d="M9 5.5l6.5 6.5L9 18.5"/>',
 
+  /* --- Ferienmodus & Schnell-Links --- */
+  sun:      '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"/>',
+  plane:    '<path d="M21.5 3.4 2.9 11.1a.6.6 0 0 0 0 1.1l6.6 2.4 2.4 6.6a.6.6 0 0 0 1.1 0Z"/><path d="M21.5 3.4 9.5 14.6"/>',
+  pin:      '<path d="M12 21s7-5.5 7-11a7 7 0 0 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/>',
+  translate:'<path d="M3.5 6h9"/><path d="M8 4v2"/><path d="M10.8 6c-.5 3.6-3 6.9-6.6 8.4"/><path d="M5.6 10.4c1.5 1.9 3.4 3.3 5.7 4.1"/><path d="M13.2 20l3.8-9 3.8 9"/><path d="M14.7 16.4h4.6"/>',
+  camera:   '<path d="M4 8.6h2.6L8 6h8l1.4 2.6H20a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.6a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3.2"/>',
+  bed:      '<path d="M2.5 18.5v-9"/><path d="M2.5 13h15a4 4 0 0 1 4 4v1.5"/><path d="M21.5 18.5h-19"/><circle cx="6.6" cy="10.6" r="1.6"/><path d="M9 13v-1.2a1.3 1.3 0 0 1 1.3-1.3H17a1.3 1.3 0 0 1 1.3 1.3V13"/>',
+  car:      '<path d="M4 13l1.7-4.4A2 2 0 0 1 7.6 7.4h8.8a2 2 0 0 1 1.9 1.2L20 13"/><path d="M3.6 13h16.8a1 1 0 0 1 1 1v3.4h-18.8V14a1 1 0 0 1 1-1Z"/><circle cx="7.6" cy="17.4" r="1.5"/><circle cx="16.4" cy="17.4" r="1.5"/>',
+  cash:     '<rect x="3" y="6.5" width="18" height="11" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.4h.02M18 14.6h.02"/>',
+  landmark: '<path d="M4 9.6l8-5 8 5"/><path d="M4.4 10.6h15.2"/><path d="M6.5 10.6V18M10 10.6V18M14 10.6V18M17.5 10.6V18"/><path d="M3.5 18.5h17"/>',
+
   /* --- Ausgaben-Kategorien --- */
   food:     '<path d="M6 3v6.5a2 2 0 0 0 4 0V3"/><path d="M8 9.5V21"/><path d="M16.5 3c-1.6 0-2.6 1.7-2.6 4.2s1 4.3 2.6 4.3"/><path d="M16.5 3v18"/>',
   box:      '<path d="M12 3 4 7v10l8 4 8-4V7Z"/><path d="M4 7l8 4 8-4"/><path d="M12 11v10"/>',

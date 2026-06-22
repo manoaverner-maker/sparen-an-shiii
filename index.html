@@ -59,6 +59,7 @@
     <button class="side-link" data-view="ziele"><span class="ico" data-icon="target"></span><span>Ziele</span></button>
     <button class="side-link" data-view="abos"><span class="ico" data-icon="repeat"></span><span>Abos</span></button>
     <button class="side-link" data-view="schulden"><span class="ico" data-icon="receipt"></span><span>Schulden &amp; Bussen</span></button>
+    <button class="side-link" data-view="ferien"><span class="ico" data-icon="sun"></span><span>Ferienmodus</span></button>
     <button class="side-link" data-view="listen"><span class="ico" data-icon="star"></span><span>Listen</span></button>
     <button class="side-link" data-view="markets"><span class="ico" data-icon="coin"></span><span>Märkte</span></button>
     <button class="side-link" data-view="coach"><span class="ico" data-icon="ai"></span><span>KI-Coach</span></button>
@@ -202,6 +203,15 @@
       </div>
     </section>
 
+    <!-- ---------- FERIENMODUS ---------- -->
+    <!-- Eigener Reise-Topf, getrennt vom Monatsbudget. Der gesamte Inhalt
+         (Einrichtung ODER laufende Ferien + Rueckblick + Schnell-Links) wird
+         von SK.ui.renderFerien() in #fe-body eingefuellt. -->
+    <section class="view" id="view-ferien">
+      <h1 class="view-title">Ferienmodus</h1>
+      <div id="fe-body"></div>
+    </section>
+
     <!-- ---------- STATISTIK ---------- -->
     <section class="view" id="view-statistik">
       <h1 class="view-title">Statistik</h1>
@@ -314,6 +324,7 @@
         <button class="more-row" data-view="ziele"><span class="ico" data-icon="target"></span><span class="more-label">Sparziele</span><span class="more-chev" data-icon="chevronR"></span></button>
         <button class="more-row" data-view="abos"><span class="ico" data-icon="repeat"></span><span class="more-label">Abo-Radar</span><span class="more-chev" data-icon="chevronR"></span></button>
         <button class="more-row" data-view="schulden"><span class="ico" data-icon="receipt"></span><span class="more-label">Schulden &amp; Bussen</span><span class="more-chev" data-icon="chevronR"></span></button>
+        <button class="more-row" data-view="ferien"><span class="ico" data-icon="sun"></span><span class="more-label">Ferienmodus</span><span class="more-chev" data-icon="chevronR"></span></button>
         <button class="more-row" data-view="listen"><span class="ico" data-icon="star"></span><span class="more-label">Listen</span><span class="more-chev" data-icon="chevronR"></span></button>
         <button class="more-row" data-view="coach"><span class="ico" data-icon="ai"></span><span class="more-label">KI-Coach</span><span class="more-chev" data-icon="chevronR"></span></button>
         <button class="more-row" data-view="ideen"><span class="ico" data-icon="lightbulb"></span><span class="more-label">Geld-Ideen</span><span class="more-chev" data-icon="chevronR"></span></button>

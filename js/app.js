@@ -99,6 +99,10 @@ SK.app.handleRollover = function () {
 /* Views, die unten als eigener Tab vorkommen. Alles andere liegt unter "Mehr". */
 SK.app.BOTTOM_VIEWS = ['heute', 'verlauf', 'statistik', 'markets', 'mehr'];
 
+/* Screens mit eigenem oberen Hinzufuegen-Knopf -> der runde +Knopf (FAB)
+   wird dort ausgeblendet, damit es pro Screen nur EINEN gibt. */
+SK.app.NO_FAB_VIEWS = ['ziele', 'abos', 'schulden', 'listen', 'ferien'];
+
 SK.app.switchView = function (view) {
   document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('is-active'); });
   const el = document.getElementById('view-' + view);
@@ -119,6 +123,9 @@ SK.app.switchView = function (view) {
     if (m) m.classList.add('is-active');
   }
 
+  // Auf Screens mit eigenem Aktionsbutton den runden +Knopf ausblenden
+  document.body.classList.toggle('no-fab', SK.app.NO_FAB_VIEWS.indexOf(view) !== -1);
+
   window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
 
   // Tab-spezifische Aktionen
@@ -126,6 +133,13 @@ SK.app.switchView = function (view) {
   if (view === 'markets') SK.app.loadMarkets();
   if (view === 'coach') SK.ui.renderCoach();
   if (view === 'ideen') SK.app.loadDailyIdea();
+  if (view === 'ferien') SK.ui.renderFerien();
+};
+
+/* Sanftes haptisches Feedback (nur wo das Geraet es unterstuetzt – z.B.
+   Android). iOS Safari kennt vibrate nicht; dann passiert einfach nichts. */
+SK.app.haptic = function (ms) {
+  try { if (navigator.vibrate) navigator.vibrate(ms || 12); } catch (e) { /* egal */ }
 };
 
 /* =====================================================================
@@ -169,6 +183,7 @@ SK.app.saveEntry = function () {
   SK.app.closeSheet();
   SK.ui.toast(SK.app.editId ? 'Geändert' : 'Gespeichert');
   SK.app.editId = null;
+  SK.app.haptic();
   SK.app.pulseHero();
 };
 
@@ -189,6 +204,7 @@ SK.app.tagesrestSichern = function () {
   SK.state.entries.push({ id: SK.uid(), datum: SK.dateKey(), betrag: rest, typ: 'sparen', goalId: goal.id, notiz: 'Tagesrest' });
   SK.app.refresh();
   SK.ui.toast(SK.ui.fmt(rest) + ' CHF in ' + goal.name + ' gesichert');
+  SK.app.haptic(18);
   SK.app.pulseHero();
 };
 
@@ -285,7 +301,7 @@ SK.app.openDepositModal = function (goalId) {
         const gid = document.getElementById('m-goal').value;
         if (!betrag || betrag <= 0) { SK.ui.toast('Bitte einen Betrag eingeben', true); return; }
         SK.state.entries.push({ id: SK.uid(), datum: SK.dateKey(), betrag: Math.round(betrag * 100) / 100, typ: 'sparen', goalId: gid, notiz: 'Einzahlung' });
-        SK.app.refresh(); SK.app.closeModal(); SK.ui.toast('Eingezahlt'); SK.app.pulseHero();
+        SK.app.refresh(); SK.app.closeModal(); SK.app.haptic(); SK.ui.toast('Eingezahlt'); SK.app.pulseHero();
       } }
   ]);
 };
@@ -494,6 +510,64 @@ SK.app.addList = function () {
 };
 
 /* =====================================================================
+   FERIENMODUS (eigener Reise-Topf)
+   ===================================================================== */
+
+/* Ferien starten: Werte aus dem Einrichtungs-Formular lesen & pruefen. */
+SK.app.startFerien = function () {
+  const budget = parseFloat(document.getElementById('fe-budget').value);
+  const start = document.getElementById('fe-start').value;
+  const ende = document.getElementById('fe-ende').value;
+  const cur = (document.getElementById('fe-cur').value || 'EUR').trim().toUpperCase();
+  const kurs = parseFloat(document.getElementById('fe-kurs').value) || 0;
+  const goalId = document.getElementById('fe-goal').value;
+  if (!budget || budget <= 0) { SK.ui.toast('Bitte ein Ferienbudget eingeben', true); return; }
+  if (!start || !ende) { SK.ui.toast('Bitte Start und Ende wählen', true); return; }
+  if (ende < start) { SK.ui.toast('Das Ende muss nach dem Start liegen', true); return; }
+  SK.state.ferien = {
+    aktiv: true,
+    budget: Math.round(budget * 100) / 100,
+    start: start, ende: ende,
+    waehrung: cur || 'EUR',
+    kurs: kurs > 0 ? kurs : 0,
+    ausgaben: [],
+    startZielId: goalId || ''
+  };
+  SK.app.refresh(); SK.app.haptic(18); SK.ui.toast('Ferienmodus gestartet');
+};
+
+/* Ferien-Ausgabe erfassen (eigener Topf, nicht im Monatsverlauf). */
+SK.app.openFerienExpense = function () {
+  const catOpts = SK.state.categories.map(function (c) {
+    return '<option value="' + c.id + '">' + SK.ui.esc(c.name) + '</option>';
+  }).join('');
+  const body =
+    '<label class="field"><span>Betrag (CHF)</span><input type="number" id="m-betrag" inputmode="decimal" placeholder="0" min="0.05" step="0.05"></label>'
+    + '<label class="field"><span>Kategorie</span><select id="m-cat">' + catOpts + '</select></label>'
+    + '<label class="field"><span>Datum</span><input type="date" id="m-datum" value="' + SK.dateKey() + '"></label>'
+    + '<label class="field"><span>Notiz (optional)</span><input type="text" id="m-notiz" maxlength="60" placeholder="z.B. Abendessen"></label>';
+  SK.app.openModal('Ferien-Ausgabe', body, [
+    { label: 'Abbrechen', cls: 'btn-ghost', onClick: SK.app.closeModal },
+    { label: 'Speichern', cls: 'btn-accent', onClick: function () {
+        const betrag = parseFloat(document.getElementById('m-betrag').value);
+        if (!betrag || betrag <= 0) { SK.ui.toast('Bitte einen Betrag eingeben', true); return; }
+        const kategorie = document.getElementById('m-cat').value;
+        const datum = document.getElementById('m-datum').value || SK.dateKey();
+        const notiz = document.getElementById('m-notiz').value.trim();
+        SK.state.ferien.ausgaben.push({ id: SK.uid(), datum: datum, betrag: Math.round(betrag * 100) / 100, kategorie: kategorie, notiz: notiz });
+        SK.app.refresh(); SK.app.closeModal(); SK.app.haptic(); SK.ui.toast('Ferien-Ausgabe erfasst');
+      } }
+  ]);
+};
+
+/* Ferien beenden & Topf leeren. */
+SK.app.resetFerien = function () {
+  if (!confirm('Ferienmodus beenden und den Ferien-Topf leeren? Die erfassten Ferien-Ausgaben werden gelöscht.')) return;
+  SK.state.ferien = SK.defaultState().ferien;
+  SK.app.refresh(); SK.ui.toast('Ferienmodus beendet');
+};
+
+/* =====================================================================
    EREIGNISSE VERBINDEN (Klicks, Eingaben)
    ===================================================================== */
 SK.app.bindEvents = function () {
@@ -670,6 +744,17 @@ SK.app.onClick = function (ev) {
       SK.state.lists = SK.state.lists.filter(function (x) { return x.id !== act.dataset.list; });
       SK.app.refresh(); SK.ui.toast('Liste gelöscht');
     }
+
+  /* ---- Ferienmodus ---- */
+  } else if (a === 'ferien-start') {
+    SK.app.startFerien();
+  } else if (a === 'ferien-add') {
+    SK.app.openFerienExpense();
+  } else if (a === 'ferien-delexp') {
+    SK.state.ferien.ausgaben = (SK.state.ferien.ausgaben || []).filter(function (x) { return x.id !== act.dataset.id; });
+    SK.app.refresh(); SK.ui.toast('Gelöscht');
+  } else if (a === 'ferien-reset') {
+    SK.app.resetFerien();
   }
 };
 
@@ -679,6 +764,13 @@ SK.app.onChange = function (ev) {
   if (t.dataset && t.dataset.act === 'toggleabo') {
     const abo = SK.state.abos.find(function (x) { return x.id === t.dataset.abo; });
     if (abo) { abo.aktiv = t.checked; SK.app.refresh(); }
+  }
+  // Ferien: Sparziel als Startguthaben gewaehlt -> Budgetfeld vorausfuellen
+  if (t.id === 'fe-goal') {
+    const opt = t.options[t.selectedIndex];
+    const saved = opt ? parseFloat(opt.dataset.saved || '0') : 0;
+    const b = document.getElementById('fe-budget');
+    if (b && saved > 0) b.value = saved;
   }
 };
 

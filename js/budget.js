@@ -422,3 +422,114 @@ SK.budget.debtsPaidThisMonth = function (state, d) {
   }
   return summe;
 };
+
+/* =====================================================================
+   TEIL 10: Ferienmodus (eigener Topf)
+   =====================================================================
+   Dieselbe Idee wie das Monats-Tagesbudget, aber KOMPLETT getrennt:
+   eigenes Gesamtbudget, eigener Zeitraum, eigene Ausgabenliste. Beruehrt
+   das normale Monatsbudget nicht. Reine Rechnungen (keine Anzeige).
+   --------------------------------------------------------------------- */
+
+/* Summe aller Ferien-Ausgaben (in CHF). */
+SK.budget.ferienSpent = function (f) {
+  return (f.ausgaben || []).reduce(function (s, a) { return s + a.betrag; }, 0);
+};
+
+/* Anzahl Ferientage gesamt (Start- und Endtag mitgezaehlt, mind. 1). */
+SK.budget.ferienDays = function (f) {
+  if (!f.start || !f.ende) return 1;
+  const s = new Date(f.start + 'T00:00:00');
+  const e = new Date(f.ende + 'T00:00:00');
+  const tage = Math.round((e - s) / 86400000) + 1;
+  return Math.max(1, tage);
+};
+
+/* Buendelt alle Kennzahlen fuer den Ferien-Bildschirm.
+   Rein: Zustand + heutiges Datum. Raus: Objekt mit Tagesbudget usw.
+   phase: 'vor'    = Reise hat noch nicht begonnen
+          'aktiv'  = mitten in der Reise
+          'ende'   = Reise vorbei (Rueckblick) */
+SK.budget.ferienInfo = function (state, heute) {
+  heute = heute || new Date();
+  const f = state.ferien;
+  const heuteKey = SK.dateKey(heute);
+  const heute0 = new Date(heuteKey + 'T00:00:00');
+
+  const tageGesamt = SK.budget.ferienDays(f);
+  const startD = f.start ? new Date(f.start + 'T00:00:00') : heute0;
+  const endD = f.ende ? new Date(f.ende + 'T00:00:00') : heute0;
+
+  // Ausgaben aufteilen: vor heute / heute
+  let spentBefore = 0, spentToday = 0;
+  for (const a of (f.ausgaben || [])) {
+    if (a.datum < heuteKey) spentBefore += a.betrag;
+    else if (a.datum === heuteKey) spentToday += a.betrag;
+  }
+  const spent = spentBefore + spentToday;
+  const remaining = f.budget - spent;
+
+  // Phase + verbleibende Tage (heute mitgezaehlt)
+  let phase, dayIndex, daysLeft;
+  if (heute0 < startD) {
+    phase = 'vor';
+    dayIndex = 0;
+    daysLeft = tageGesamt;
+  } else if (heute0 > endD) {
+    phase = 'ende';
+    dayIndex = tageGesamt;
+    daysLeft = 0;
+  } else {
+    phase = 'aktiv';
+    dayIndex = Math.round((heute0 - startD) / 86400000) + 1;
+    daysLeft = tageGesamt - dayIndex + 1;
+  }
+
+  // Noch verfuegbar zu Tagesbeginn -> Tagesbudget (gleiche Logik wie Monat:
+  // weniger ausgegeben => mehr fuer Resttage, mehr ausgegeben => weniger).
+  const nochVerfuegbar = f.budget - spentBefore;
+  const tagesbudget = daysLeft > 0 ? nochVerfuegbar / daysLeft : nochVerfuegbar;
+  const heuteNochVerfuegbar = tagesbudget - spentToday;
+
+  // Ampel (wie auf dem Heute-Screen)
+  let ampel;
+  if (phase === 'ende') ampel = remaining >= 0 ? 'gruen' : 'rot';
+  else if (heuteNochVerfuegbar < 0 || tagesbudget <= 0) ampel = 'rot';
+  else if (heuteNochVerfuegbar < tagesbudget / 3) ampel = 'gelb';
+  else ampel = 'gruen';
+
+  return {
+    phase: phase,
+    tageGesamt: tageGesamt,
+    dayIndex: dayIndex,
+    daysLeft: daysLeft,
+    budget: f.budget,
+    spent: spent,
+    spentToday: spentToday,
+    remaining: remaining,
+    tagesbudget: tagesbudget,
+    heuteNochVerfuegbar: heuteNochVerfuegbar,
+    ampel: ampel,
+    // Tage bis zum Start (fuer die 'vor'-Phase)
+    tageBisStart: Math.max(0, Math.round((startD - heute0) / 86400000))
+  };
+};
+
+/* Ferien-Ausgaben nach Kategorie (fuer den Rueckblick).
+   Raus: Array [{ kategorie, name, color, betrag }], groesste zuerst. */
+SK.budget.ferienByCategory = function (state) {
+  const f = state.ferien;
+  const summen = {};
+  for (const a of (f.ausgaben || [])) summen[a.kategorie] = (summen[a.kategorie] || 0) + a.betrag;
+  const out = [];
+  for (const cat of state.categories) {
+    if (summen[cat.id]) out.push({ kategorie: cat.id, name: cat.name, color: cat.color, betrag: summen[cat.id] });
+  }
+  for (const id in summen) {
+    if (!state.categories.some(function (c) { return c.id === id; })) {
+      out.push({ kategorie: id, name: id, color: '#94a3b8', betrag: summen[id] });
+    }
+  }
+  out.sort(function (a, b) { return b.betrag - a.betrag; });
+  return out;
+};

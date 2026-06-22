@@ -206,6 +206,29 @@ SK.defaultState = function () {
     /* ---- KI-Recherche "Geld verdienen" (taeglich aktualisiert, gecacht) ---- */
     moneyResearch: { datum: '', text: '' },
 
+    /* ---- Ferienmodus (Funktion: Ferien) ----
+       Ein KOMPLETT getrennter Topf fuers Reisen. Er beeinflusst das normale
+       Monatsbudget NICHT (eigene Ausgabenliste, eigene Tagesbudget-Rechnung).
+         aktiv     = laeuft gerade ein Ferien-Topf?
+         budget    = Gesamt-Ferienbudget in CHF
+         start/ende= Reisezeitraum 'JJJJ-MM-TT'
+         waehrung  = Code der Fremdwaehrung (z.B. 'EUR'), nur zur Anzeige
+         kurs      = selbst eingegebener Kurs: 1 [waehrung] = kurs CHF
+                     (0 = aus -> keine Fremdwaehrung anzeigen; KEIN Live-Abruf)
+         ausgaben  = [{ id, datum, betrag (CHF), kategorie, notiz }]
+         startZielId = optionales Sparziel, dessen Stand als Startguthaben
+                       in den Ferien-Topf uebernommen wurde (nur Merker) */
+    ferien: {
+      aktiv: false,
+      budget: 0,
+      start: '',
+      ende: '',
+      waehrung: 'EUR',
+      kurs: 0,
+      ausgaben: [],
+      startZielId: ''
+    },
+
     /* ---- interne Notizen ---- */
     meta: {
       erstellt: SK.dateKey(),  // Datum des ersten Starts

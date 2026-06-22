@@ -1,48 +1,29 @@
 <!doctype html><html><head><meta charset="utf-8">
-<!-- Hilfsseite NUR zum Erzeugen der PNG-App-Icons. Das Emblem ist hier
-     direkt eingebettet (kein externes Laden), damit es beim Abfotografieren
-     garantiert sichtbar ist. ?s=78 -> Emblem nimmt 78% der Kante ein. -->
+<!-- Hilfsseite NUR zum Erzeugen der PNG-App-Icons (iOS-Stil): das
+     Marken-"S" (Variante Ribbon) auf hellem, abgerundetem Quadrat.
+     ?bleed=1 -> randlos (fuer maskable / apple-touch). Sonst abgerundet. -->
 <style>
   html,body{margin:0;padding:0;width:100%;height:100%}
-  body{display:grid;place-items:center;
-    background:
-      radial-gradient(60% 50% at 50% 118%, rgba(25,227,166,0.18), transparent 70%),
-      radial-gradient(130% 120% at 30% 0%, #16222f 0%, #0c1118 58%, #080d13 100%);}
-  .emblem{display:block;filter:drop-shadow(0 6px 18px rgba(0,0,0,0.45))}
+  svg{display:block;width:100%;height:100%}
 </style></head>
 <body>
-  <svg class="emblem" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="i-shield" x1="32" y1="3" x2="32" y2="61" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stop-color="#22384a"/><stop offset="1" stop-color="#0c151d"/>
-      </linearGradient>
-      <linearGradient id="i-grow" x1="16" y1="50" x2="48" y2="16" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stop-color="#0fd99a"/><stop offset="1" stop-color="#1fc8e3"/>
-      </linearGradient>
-      <radialGradient id="i-coin" cx="0.35" cy="0.32" r="0.85">
-        <stop offset="0" stop-color="#ffe6a0"/><stop offset="0.55" stop-color="#f4c14b"/><stop offset="1" stop-color="#d29a25"/>
-      </radialGradient>
-      <linearGradient id="i-stroke" x1="14" y1="48" x2="46" y2="18" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stop-color="#19e3a6"/><stop offset="1" stop-color="#33d3ef"/>
-      </linearGradient>
-    </defs>
-    <path d="M32 4 L54 11.5 V30 C54 44 45.5 53.5 32 60 C18.5 53.5 10 44 10 30 V11.5 Z"
-          fill="url(#i-shield)" stroke="#3a5167" stroke-width="1.4" stroke-linejoin="round"/>
-    <path d="M32 7 L51 13.4 V20 C44 16.5 38 15.4 32 15.4 C26 15.4 20 16.5 13 20 V13.4 Z" fill="#ffffff" opacity="0.06"/>
-    <g opacity="0.92">
-      <rect x="19" y="37" width="6.5" height="10" rx="1.6" fill="url(#i-grow)" opacity="0.55"/>
-      <rect x="28" y="31" width="6.5" height="16" rx="1.6" fill="url(#i-grow)" opacity="0.78"/>
-      <rect x="37" y="24" width="6.5" height="23" rx="1.6" fill="url(#i-grow)"/>
+  <svg id="ic" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" fill="none">
+    <rect id="bg" width="512" height="512" rx="112" fill="#f5f8f6"/>
+    <g id="mark" transform="translate(87,87) scale(5.28)">
+      <defs>
+        <linearGradient id="it" x1="20" y1="10" x2="40" y2="38" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4ff2d6"/><stop offset="1" stop-color="#12c994"/></linearGradient>
+        <linearGradient id="ib" x1="22" y1="30" x2="40" y2="54" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#15d09c"/><stop offset="1" stop-color="#08a06f"/></linearGradient>
+      </defs>
+      <path d="M31 31.5 L 38 33.5 C 48 37.5, 47.5 47, 38.5 50 C 31 52.5, 20.5 51.5, 17 45" fill="none" stroke="url(#ib)" stroke-width="12.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 18 C 43 12, 32 11, 25 14 C 16.5 17.5, 16 27, 26 30.5 L 34 32.5" fill="none" stroke="url(#it)" stroke-width="12.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="27" y="27.5" width="11.5" height="9.5" rx="4.5" fill="#0a8a66" transform="rotate(22 32.5 32.5)"/>
+      <path d="M43.5 22 L49.5 10.5 L54 17 Z" fill="url(#it)"/>
     </g>
-    <path d="M17 43 L29 35 L40 26" fill="none" stroke="url(#i-stroke)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="17" cy="43" r="2.4" fill="#19e3a6"/>
-    <circle cx="44.5" cy="21.5" r="8.2" fill="url(#i-coin)" stroke="#b9831c" stroke-width="0.8"/>
-    <circle cx="44.5" cy="21.5" r="5.6" fill="none" stroke="#b9831c" stroke-width="0.9" opacity="0.55"/>
-    <text x="44.5" y="25.1" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="7.3" font-weight="700" fill="#7a5510">Fr</text>
   </svg>
 <script>
-  var s = new URLSearchParams(location.search).get('s') || 78;
-  var el = document.querySelector('.emblem');
-  el.style.width = s + 'vmin'; el.style.height = s + 'vmin';
+  if (new URLSearchParams(location.search).get('bleed')) {
+    document.getElementById('bg').setAttribute('rx','0');
+    document.getElementById('mark').setAttribute('transform','translate(96,96) scale(5.0)');
+  }
 </script>
 </body></html>

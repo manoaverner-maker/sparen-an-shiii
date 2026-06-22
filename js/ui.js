@@ -589,7 +589,7 @@ SK.ui.renderEinstellungen = function () {
   // Märkte
   document.getElementById('se-cryptocur').value = SK.state.settings.cryptoWaehrung || 'chf';
 
-  document.getElementById('se-version').textContent = '2.0';
+  document.getElementById('se-version').textContent = '2.1';
 
   document.getElementById('se-kategorien').innerHTML = SK.state.categories.map(function (c) {
     return '<div class="cat-edit"><span class="cat-edit-ico" style="color:' + c.color + '">' + SK.icon(c.icon) + '</span>'
@@ -615,6 +615,7 @@ SK.ui.render = function () {
   SK.ui.renderZiele();
   SK.ui.renderAbos();
   SK.ui.renderSchulden();
+  SK.ui.renderFerien();
   SK.ui.renderStatistik();
   SK.ui.renderListen();
   SK.ui.renderMarkets();      // zeigt zwischengespeicherte Kurse (Abruf passt beim Tab-Wechsel)
@@ -737,6 +738,162 @@ SK.ui.renderListen = function () {
       + (summe > 0 ? '<div class="list-sum">Summe ' + SK.ui.fmt(summe) + ' CHF' + (offen !== summe ? ' · offen ' + SK.ui.fmt(offen) + ' CHF' : '') + '</div>' : '')
     + '</div>';
   }).join('');
+};
+
+/* ---- FERIENMODUS ----
+   Reine Schnell-Links (oeffnen externe App/Website, KEINE eigene Abfrage).
+   Die "in der Nähe"-Maps-Links nutzen den aktuellen Standort des Geraets
+   (Standard-Maps-Suche), ohne dass die App Standortdaten speichert. */
+SK.ui.FERIEN_LINKS = [
+  { gruppe: 'In der Nähe (nutzt deinen Standort)', items: [
+    { icon: 'pin',      label: 'Restaurants',       url: 'https://www.google.com/maps/search/?api=1&query=Restaurants+in+der+N%C3%A4he' },
+    { icon: 'landmark', label: 'Sehenswürdigkeiten', url: 'https://www.google.com/maps/search/?api=1&query=Sehensw%C3%BCrdigkeiten+in+der+N%C3%A4he' },
+    { icon: 'cash',     label: 'Bankomat',          url: 'https://www.google.com/maps/search/?api=1&query=Bankomat+in+der+N%C3%A4he' }
+  ]},
+  { gruppe: 'Übersetzen', items: [
+    { icon: 'translate', label: 'Übersetzen',     url: 'https://translate.google.com/' },
+    { icon: 'camera',    label: 'Foto übersetzen', url: 'https://translate.google.com/?op=images' }
+  ]},
+  { gruppe: 'Unterkunft & Transport', items: [
+    { icon: 'bed',  label: 'Booking.com', url: 'https://www.booking.com/' },
+    { icon: 'home', label: 'Airbnb',      url: 'https://www.airbnb.com/' },
+    { icon: 'car',  label: 'Bolt',        url: 'https://bolt.eu/' },
+    { icon: 'sun',  label: 'Wetter',      url: 'https://www.google.com/search?q=Wetter' }
+  ]}
+];
+
+/* Fremdwaehrungs-Zusatz zu einem CHF-Betrag (oder '' wenn kein Kurs gesetzt).
+   Kurs-Konvention: 1 [waehrung] = kurs CHF  ->  Fremdwaehrung = CHF / kurs. */
+SK.ui.ferienFx = function (chf) {
+  const f = SK.state.ferien;
+  if (!f.kurs || f.kurs <= 0) return '';
+  const fw = chf / f.kurs;
+  return '≈ ' + SK.ui.fmt(fw, Math.abs(fw) < 50 ? 2 : 0) + ' ' + SK.ui.esc(f.waehrung || '');
+};
+
+/* Einrichtungs-Formular (wenn noch keine Ferien laufen). */
+SK.ui._ferienSetup = function () {
+  const heute = SK.dateKey();
+  const goalOpts = ['<option value="">— kein Sparziel —</option>'].concat(
+    SK.state.goals.filter(function (g) { return !g.archiviert; }).map(function (g) {
+      const saved = Math.round(SK.budget.goalSaved(SK.state, g));
+      return '<option value="' + g.id + '" data-saved="' + saved + '">' + SK.ui.esc(g.name) + ' (' + SK.ui.fmt(saved) + ' CHF)</option>';
+    })).join('');
+  return '<div class="card fe-setup">'
+    + '<p class="muted">Führe im Urlaub ein <strong>getrenntes</strong> Tagesbudget. Es beeinflusst dein normales Monatsbudget nicht – eigene Ausgaben, eigener Topf.</p>'
+    + '<label class="field"><span>Ferienbudget gesamt (CHF)</span><input type="number" id="fe-budget" inputmode="decimal" min="0" step="50" placeholder="z.B. 1000"></label>'
+    + '<div class="fe-row2">'
+      + '<label class="field"><span>Start</span><input type="date" id="fe-start" value="' + heute + '"></label>'
+      + '<label class="field"><span>Ende</span><input type="date" id="fe-ende"></label>'
+    + '</div>'
+    + '<label class="field"><span>Sparziel als Startguthaben übernehmen (optional)</span><select id="fe-goal">' + goalOpts + '</select>'
+      + '<small class="cap">Übernimmt den aktuellen Stand als Ferienbudget (zieht ihn NICHT vom Sparziel ab).</small></label>'
+    + '<div class="fe-row2">'
+      + '<label class="field"><span>Fremdwährung</span><input type="text" id="fe-cur" value="EUR" maxlength="4" placeholder="EUR"></label>'
+      + '<label class="field"><span>Kurs: 1 = … CHF</span><input type="number" id="fe-kurs" inputmode="decimal" min="0" step="0.01" placeholder="z.B. 0.95"></label>'
+    + '</div>'
+    + '<p class="cap">Den Kurs gibst du selbst ein – kein Live-Abruf. Beträge erscheinen dann in CHF und in der Fremdwährung.</p>'
+    + '<button class="btn btn-accent btn-block" data-act="ferien-start"><span class="ic-pre" data-icon="plane"></span>Ferien starten</button>'
+  + '</div>';
+};
+
+/* Eine Ferien-Ausgabenzeile. */
+SK.ui._ferienRow = function (a) {
+  const cat = SK.ui.cat(a.kategorie);
+  const fx = SK.ui.ferienFx(a.betrag);
+  return '<div class="entry" data-id="' + a.id + '">'
+    + '<div class="entry-ico" style="background:' + cat.color + '22;color:' + cat.color + '">' + SK.icon(cat.icon) + '</div>'
+    + '<div class="entry-main"><div class="entry-cat">' + SK.ui.esc(cat.name) + '</div>'
+      + '<div class="entry-note">' + SK.ui.esc(a.notiz || SK.ui.dayLabel(a.datum)) + (fx ? ' · ' + fx : '') + '</div></div>'
+    + '<div class="entry-amt">−' + SK.ui.fmt(a.betrag, 2) + '</div>'
+    + '<div class="entry-actions"><button data-act="ferien-delexp" data-id="' + a.id + '" title="Löschen">' + SK.icon('trash') + '</button></div>'
+  + '</div>';
+};
+
+/* Der ganze Ferien-Bildschirm (Einrichtung ODER laufende Ferien). */
+SK.ui.renderFerien = function () {
+  const body = document.getElementById('fe-body');
+  if (!body) return;
+  const f = SK.state.ferien;
+
+  if (!f.aktiv) {
+    body.innerHTML = SK.ui._ferienSetup();
+    SK.app.injectStaticIcons(body);
+    return;
+  }
+
+  const info = SK.budget.ferienInfo(SK.state);
+
+  // ---- Hero (je nach Phase) ----
+  let label, amount, sub;
+  if (info.phase === 'vor') {
+    label = 'Ferien-Tagesbudget';
+    amount = info.tagesbudget;
+    sub = 'Start ' + SK.ui.dayLabel(f.start) + ' · in <strong>' + info.tageBisStart + '</strong> Tagen · Budget ' + SK.ui.fmt(f.budget) + ' CHF';
+  } else if (info.phase === 'ende') {
+    label = 'Übrig geblieben';
+    amount = info.remaining;
+    sub = 'von ' + SK.ui.fmt(f.budget) + ' CHF · ' + info.tageGesamt + ' Ferientage';
+  } else {
+    label = 'Heute noch verfügbar';
+    amount = info.heuteNochVerfuegbar;
+    sub = 'Tagesbudget heute: <strong>' + SK.ui.fmt(info.tagesbudget) + '</strong> CHF · noch <span>' + info.daysLeft + '</span> Ferientage';
+  }
+  const fxAmount = SK.ui.ferienFx(amount);
+  let pct = info.tagesbudget > 0 ? (info.heuteNochVerfuegbar / info.tagesbudget) * 100 : 0;
+  pct = Math.max(0, Math.min(100, pct));
+
+  let html = '<div class="card card--lit hero fe-hero ampel-' + info.ampel + '">'
+    + '<div class="hero-label label">' + label + '</div>'
+    + '<div class="hero-amount amount-hero">' + SK.ui.fmt(Math.round(amount)) + '<span class="cur">CHF</span></div>'
+    + (fxAmount ? '<div class="fe-fx">' + fxAmount + '</div>' : '')
+    + (info.phase === 'aktiv' ? '<div class="ampel-bar"><div class="ampel-fill" style="width:' + pct + '%"></div></div>' : '')
+    + '<div class="hero-sub">' + sub + '</div>'
+  + '</div>';
+
+  // ---- Ausgabe erfassen (eigener Knopf -> der runde +Knopf ist hier aus) ----
+  html += '<button class="btn btn-accent btn-block" data-act="ferien-add"><span class="ic-pre" data-icon="plus"></span>Ferien-Ausgabe erfassen</button>';
+
+  // ---- Rückblick: X von Y ausgegeben + nach Kategorie ----
+  const rpct = f.budget > 0 ? Math.max(0, Math.min(100, (info.spent / f.budget) * 100)) : 0;
+  const cats = SK.budget.ferienByCategory(SK.state);
+  html += '<div class="card"><div class="section-head"><h2>Rückblick</h2></div>'
+    + '<div class="fe-review-head"><strong>' + SK.ui.fmt(info.spent) + '</strong> von ' + SK.ui.fmt(f.budget) + ' CHF ausgegeben'
+      + (SK.ui.ferienFx(info.spent) ? ' · ' + SK.ui.ferienFx(info.spent) : '') + '</div>'
+    + '<div class="progress"><div class="progress-fill" style="width:' + rpct + '%"></div></div>'
+    + (cats.length
+        ? '<div class="fe-cat-list">' + cats.map(function (c) {
+            return '<div class="legend-row"><span><i style="background:' + c.color + '"></i>' + SK.ui.esc(c.name) + '</span><b>' + SK.ui.fmt(c.betrag, 2) + '</b></div>';
+          }).join('') + '</div>'
+        : '<p class="cap">Noch keine Ferien-Ausgaben erfasst.</p>')
+  + '</div>';
+
+  // ---- Ausgabenliste ----
+  const liste = (f.ausgaben || []).slice().sort(function (a, b) {
+    if (a.datum !== b.datum) return a.datum < b.datum ? 1 : -1;
+    return a.id < b.id ? 1 : -1;
+  });
+  html += '<div class="card"><div class="section-head"><h2>Ferien-Ausgaben</h2></div>'
+    + '<div class="entry-list">' + (liste.length ? liste.map(SK.ui._ferienRow).join('') : '<div class="empty-hint">Noch nichts erfasst.</div>') + '</div></div>';
+
+  // ---- Schnell-Links ----
+  html += '<div class="card fe-links"><div class="section-head"><h2><span class="ic-pre" data-icon="pin"></span>Schnell-Links</h2></div>'
+    + '<p class="cap">Öffnen die jeweilige App bzw. Website. Nur diese Links brauchen Internet.</p>'
+    + SK.ui.FERIEN_LINKS.map(function (grp) {
+        return '<div class="ql-group"><div class="label">' + SK.ui.esc(grp.gruppe) + '</div><div class="fe-quick-grid">'
+          + grp.items.map(function (it) {
+              return '<a class="ql" href="' + it.url + '" target="_blank" rel="noopener noreferrer">'
+                + '<span class="ico" data-icon="' + it.icon + '"></span><span>' + SK.ui.esc(it.label) + '</span></a>';
+            }).join('')
+          + '</div></div>';
+      }).join('')
+  + '</div>';
+
+  // ---- Ferien beenden ----
+  html += '<button class="btn btn-ghost btn-block" data-act="ferien-reset"><span class="ic-pre" data-icon="trash"></span>Ferien beenden &amp; Topf leeren</button>';
+
+  body.innerHTML = html;
+  SK.app.injectStaticIcons(body);
 };
 
 /* Wandelt KI-Text sicher in HTML um (escapen, Zeilenumbrüche, einfache Aufzählungen). */

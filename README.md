@@ -1,4 +1,4 @@
-# Sparen an Shiii 🛡️📈
+# Sparen an Shiii
 
 **Deine persönliche Budget-App.** Sie beantwortet jeden Tag die eine wichtige Frage:
 
@@ -30,6 +30,7 @@ Die App läuft komplett **offline** auf deinem Gerät, speichert alles **lokal**
 | **Ziele** | Sparziele in zwei Arten: *Ziel mit Datum* (z.B. Kroatien) und *fester Monats-Topf* (z.B. Motorrad 250/Monat, Sparkonto 250/Monat). Fortschritt, benötigte Rate, Einzahlen-Knopf. |
 | **Abos** | Abo-Radar mit Gesamtsumme, Erinnerung 3 Tage vor Verlängerung, aktiv/gekündigt-Schalter. |
 | **Schulden & Bussen** | Einmalige Schulden/Sonderausgaben **und Bussen** als eigener Topf: Posten mit Teilzahlungen, Fortschritt, Fälligkeit, Archiv – getrennt vom Tagesbudget. |
+| **Ferienmodus** | Eigener Reise-Topf mit **getrenntem** Ferien-Tagesbudget (gleiche Logik wie sonst, beeinflusst das Monatsbudget aber nicht). Eigene Ausgaben, optionaler manueller Wechselkurs (CHF + Fremdwährung), Sparziel als Startguthaben, Rückblick nach Kategorie und externe Schnell-Links (Maps, Übersetzen, Booking/Airbnb/Bolt, Wetter). |
 | **Märkte** | Live-Krypto-Kurse (Ethereum zuerst, dazu BTC/SOL) von CoinGecko: Preis, 24h/7d/30d, Marktwert, Allzeithoch, 7-Tage-Sparkline. Offline werden die letzten Werte gezeigt. *Keine Anlageberatung.* |
 | **KI-Coach** | **Smart-Analyse** (läuft offline auf dem Gerät, ohne Schlüssel) + optional echte Analysen von Claude (eigener Anthropic-API-Schlüssel). |
 | **Geld-Ideen** | Bewährte, recherchierte Wege zum Geldverdienen/-sparen (Schweiz) + optional eine täglich frische Idee von Claude. |
@@ -37,7 +38,9 @@ Die App läuft komplett **offline** auf deinem Gerät, speichert alles **lokal**
 | **Statistik** | Monatsverlauf (Soll gegen Ist), Tortendiagramm nach Kategorie, Streak, Ø pro Tag/Woche, Hochrechnung, Vormonatsvergleich, Schulden-Übersicht. |
 | **Einstellungen** | Lohn, Fixkosten, Schulden-Rate, KI-Coach, Märkte-Währung, Kategorien, Backup-Export/Import, Zurücksetzen. |
 
-**Navigation:** Unten (Handy) gibt es 5 Tabs – Heute, Verlauf, Statistik, Märkte und **Mehr**. Hinter „Mehr" liegen Ziele, Abos, Schulden, Listen, KI-Coach, Geld-Ideen und Einstellungen. Am Desktop ist alles direkt in der Seitenleiste.
+**Navigation:** Unten (Handy) gibt es 5 Tabs – Heute, Verlauf, Statistik, Märkte und **Mehr**. Hinter „Mehr" liegen Ziele, Abos, Schulden, **Ferienmodus**, Listen, KI-Coach, Geld-Ideen und Einstellungen. Am Desktop ist alles direkt in der Seitenleiste.
+
+> **Pro Screen nur ein Hinzufügen-Knopf:** Auf Screens mit eigenem oberen Aktionsbutton (Ziele, Abos, Schulden, Ferien, Listen) ist der runde grüne **(+)**-Knopf ausgeblendet; sonst erfasst er eine Ausgabe. Alle scrollbaren Seiten haben unten genug Abstand, damit der (+)-Knopf nie die letzte Karte verdeckt.
 
 ---
 
@@ -100,9 +103,10 @@ sparen-an-shiii/
 │   ├── ui.js             Anzeige: baut alle Bildschirme auf
 │   └── app.js            Steuerung: verbindet Klicks, Daten und Anzeige
 └── assets/
-    ├── logo.svg          App-Emblem (Schild + Wachstum + Münze)
-    ├── favicon.svg       Browser-Tab-Symbol
-    └── icon-*.png        App-Icons für Homescreen/Installation
+    ├── logo.svg          Marken-"S" (Letter-Mark, Variante „Ribbon") – Header
+    ├── favicon.svg       Browser-Tab-Symbol (gleiches „S" auf transparentem Grund)
+    ├── _icon.html        Hilfsseite zum Erzeugen der PNG-App-Icons
+    └── icon-*.png        App-Icons für Homescreen/Installation (iOS-Stil)
 ```
 
 **So hängt es zusammen:**
@@ -170,6 +174,49 @@ Damit du den Abbau trotzdem realistisch einplanst, gibt es in den **Einstellunge
 den Schalter **„Monatliche Schulden-Rate vom verfügbaren Geld abziehen"**. Ist er
 aktiv, wird der eingestellte Betrag – genau wie die Sparrate – *vor* der
 Tagesbudget-Berechnung vom verfügbaren Monatsgeld abgezogen.
+
+## Ferienmodus
+
+Ein **komplett getrennter Reise-Topf** – damit du im Urlaub ein eigenes
+Tagesbudget führst, ohne dass es dein normales Monatsbudget verfälscht.
+
+- **Starten:** Ferienbudget gesamt + Start- und Enddatum. Daraus entsteht ein
+  **Ferien-Tagesbudget** mit *derselben* Logik wie sonst: gibst du heute weniger
+  aus, bleibt für die Resttage mehr; gibst du mehr aus, weniger. Alles in einem
+  eigenen Topf, getrennt von deinem Monat.
+- **Ausgaben** erfasst du separat (gleiche Kategorien). Sie erscheinen **nicht**
+  im normalen Monatsverlauf und in keiner Monats-Statistik.
+- **Fremdwährung (optional):** Du gibst den Kurs *selbst* ein (z.B. `1 EUR = 0.95 CHF`,
+  **kein** Live-Abruf). Beträge erscheinen dann in CHF **und** in der Fremdwährung.
+- **Sparziel als Startguthaben:** Beim Einrichten kannst du ein bestehendes Ziel
+  (z.B. „Kroatien") wählen – sein aktueller Stand wird als Ferienbudget übernommen
+  (kopiert, der Betrag wird **nicht** vom Sparziel abgezogen).
+- **Rückblick:** „X von Y ausgegeben" plus Übersicht nach Kategorie – ideal am
+  Ende der Reise.
+- **Schnell-Links:** aufgeräumte Button-Reihe mit rein **externen** Links (öffnen
+  die jeweilige App bzw. Website): Maps „in der Nähe" (Restaurants, Sehenswürdig­keiten,
+  Bankomat – nutzen deinen Standort, ohne ihn zu speichern), Google Übersetzer
+  (Text + „Foto übersetzen"), Booking.com, Airbnb, Bolt und Wetter. **Nur diese
+  Links brauchen Internet** – der Rest der App läuft offline.
+
+> Den Ferien-Topf findest du unter **Mehr → Ferienmodus** (am Desktop in der
+> Seitenleiste). Mit **„Ferien beenden & Topf leeren"** setzt du ihn zurück.
+
+## Logo & Design
+
+- **Logo:** ein eigenes Marken-**„S"** im Fintech-Letter-Mark-Stil (Variante
+  „Ribbon"): aus **zwei sich überlappenden Türkis-Bändern** aufgebaut, mit einer
+  dunkleren Mischzone in der Mitte und einer einzelnen spitzen Akzent-Ecke
+  oben-rechts (aufsteigende Bewegung = Wachstum). Liegt als sauberes,
+  verlustfrei skalierbares SVG vor (`assets/logo.svg`, Farben oben im Kommentar
+  änderbar). Das App-Icon ist dieselbe Form auf hellem, abgerundetem Quadrat
+  (iOS-Stil) – die PNGs in allen nötigen Grössen erzeugst du aus `assets/_icon.html`.
+- **Design:** ruhiger und edler („belohnend", Vorbild Revolut) – **randlose Karten**
+  mit Tiefe nur durch minimale Helligkeitsunterschiede und sehr weiche Schatten,
+  ein dezenter vertikaler Hintergrund-Verlauf, mehr Weissraum, die Akzentfarbe
+  **sparsam** (nur das wichtigste Element pro Screen ist farbig). Tipp-Flächen
+  sinken beim Drücken sanft ein, Zahlen zählen weich hoch, und wo das Gerät es
+  unterstützt (z.B. Android), gibt es ein leichtes **haptisches** Feedback.
 
 ## Märkte (Krypto-Kurse)
 
