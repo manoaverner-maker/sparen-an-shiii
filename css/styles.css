@@ -278,7 +278,7 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
   transition: width .7s cubic-bezier(.22,.61,.36,1); }
 
 /* Mini-Karten Raster */
-.mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
 .mini-grid .card { margin-bottom: 0; }
 .mini { padding: 14px; }
 .mini-label { font-size: 0.78rem; color: var(--text-dim); }
@@ -550,7 +550,7 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
   #view-heute.is-active { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
   #view-heute .card { margin-bottom: 0; }
   #view-heute .hero { grid-column: 1 / -1; }
-  #view-heute .mini-grid { grid-column: auto; }
+  #view-heute .mini-grid { grid-column: auto; margin-bottom: 0; }
   #view-heute > .card:last-child { grid-column: 1 / -1; }   /* letzte Ausgaben volle Breite */
 
   .stat-grid { grid-template-columns: 1fr 1fr; }
@@ -685,11 +685,13 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 .fe-arch-wrap .card { margin-bottom: 10px; }
 .fe-arch-card .goal-mini-text { margin: 4px 0; }
 .fe-arch-card .progress { margin: 6px 0 4px; }
-.fe-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-/* min-width:0 laesst die Spalten schmaler werden als der Inhalt der
-   Datums-/Zahlenfelder – sonst laeuft die Zeile auf dem Handy ueber. */
+/* Auf dem Handy gestapelt (1 Spalte) -> Datums-/Zahlenfelder koennen nie
+   ueberlappen oder aus dem Bildschirm laufen (iOS-Datumsfelder schrumpfen nicht
+   zuverlaessig). Erst ab 480px nebeneinander. */
+.fe-row2 { display: grid; grid-template-columns: 1fr; gap: 0; }
 .fe-row2 .field { margin-bottom: 14px; min-width: 0; }
 .fe-row2 input { min-width: 0; }
+@media (min-width: 480px) { .fe-row2 { grid-template-columns: 1fr 1fr; gap: 12px; } }
 .fe-setup .field small { display: block; margin-top: 5px; }
 /* Fremdwaehrungs-Zeile unter der grossen Zahl */
 .fe-fx { color: var(--text-dim); font-size: 0.95rem; font-weight: 600; margin-top: 2px; position: relative; }

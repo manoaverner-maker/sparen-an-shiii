@@ -16,7 +16,7 @@
    damit der Browser die neuen Dateien laedt statt der alten.
    ===================================================================== */
 
-const CACHE_NAME = 'sparkurs-v7';
+const CACHE_NAME = 'sparkurs-v8';
 
 /* Alle Dateien, die fuer den Offline-Betrieb gebraucht werden.
    Pfade relativ ("./"), damit es auch in einem Unterordner (GitHub Pages)
@@ -54,14 +54,10 @@ self.addEventListener('install', function (event) {
       }));
     })
   );
-  // NICHT mehr automatisch uebernehmen: die neue Version "wartet", bis der
-  // Nutzer im "Neue Version"-Banner auf Aktualisieren tippt (siehe message-Listener).
-});
-
-/* Wenn die App per postMessage Bescheid gibt, uebernimmt die wartende
-   Version sofort -> danach laedt die Seite einmal neu (controllerchange). */
-self.addEventListener('message', function (event) {
-  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+  // Neue Version SOFORT uebernehmen -> Updates kommen zuverlaessig an (gerade
+  // als PWA auf dem iPhone). Nach dem Wechsel zeigt die App ein dezentes
+  // "Neue Version"-Banner zum Neuladen (siehe app.js, controllerchange).
+  self.skipWaiting();
 });
 
 /* AKTIVIEREN: alte Caches (fruehere Versionen) aufraeumen. */

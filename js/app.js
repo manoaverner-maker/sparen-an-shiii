@@ -839,44 +839,30 @@ SK.app.importFile = function (ev) {
 /* =====================================================================
    SERVICE WORKER (macht die App offline-faehig)
    ===================================================================== */
-SK.app._updating = false;
 SK.app.registerSW = function () {
   if (!('serviceWorker' in navigator)) return;
+  // Gab es beim Laden schon einen aktiven Service Worker? Dann ist ein spaeterer
+  // Kontroll-Wechsel ein echtes Update (und kein allererster Start).
+  SK.app._hadController = !!navigator.serviceWorker.controller;
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('service-worker.js').then(function (reg) {
-      // Schon eine neue Version bereit? (z.B. beim Oeffnen)
-      if (reg.waiting && navigator.serviceWorker.controller) SK.app.showUpdate(reg.waiting);
-      // Auf neu eintreffende Updates lauschen
-      reg.addEventListener('updatefound', function () {
-        const nw = reg.installing;
-        if (!nw) return;
-        nw.addEventListener('statechange', function () {
-          // "installed" + es gibt schon einen Controller = echtes Update (kein Erststart)
-          if (nw.state === 'installed' && navigator.serviceWorker.controller) SK.app.showUpdate(nw);
-        });
-      });
-    }).catch(function (e) {
+    navigator.serviceWorker.register('service-worker.js').catch(function (e) {
       console.warn('Service Worker konnte nicht registriert werden:', e);
     });
-    // Wenn die neue Version uebernimmt, EINMAL neu laden – aber nur, wenn der
-    // Nutzer das Update selbst ausgeloest hat (sonst Reload beim Erststart).
+    // Die neue Version (skipWaiting) hat die Kontrolle uebernommen -> dezentes
+    // "Neue Version"-Banner anzeigen; Tippen laedt die frischen Dateien.
     navigator.serviceWorker.addEventListener('controllerchange', function () {
-      if (SK.app._updating) { SK.app._updating = false; window.location.reload(); }
+      if (SK.app._hadController) SK.app.showUpdate();
     });
   });
 };
 
-/* Zeigt das "Neue Version verfügbar"-Banner und verdrahtet den Knopf. */
-SK.app.showUpdate = function (worker) {
+/* Zeigt das "Neue Version verfügbar"-Banner; Tippen laedt die Seite neu. */
+SK.app.showUpdate = function () {
   const bar = document.getElementById('update-bar');
-  if (!bar) return;
+  if (!bar || bar.classList.contains('show')) return;
   bar.classList.add('show');
   const btn = document.getElementById('update-btn');
-  btn.onclick = function () {
-    SK.app._updating = true;
-    btn.textContent = 'Lädt …';
-    worker.postMessage({ type: 'SKIP_WAITING' });
-  };
+  btn.onclick = function () { btn.textContent = 'Lädt …'; window.location.reload(); };
 };
 
 /* App starten, sobald die Seite bereit ist. */
