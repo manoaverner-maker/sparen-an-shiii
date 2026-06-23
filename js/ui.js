@@ -23,6 +23,8 @@ SK.ui.verlaufFilter = 'alle';   // aktueller Filter im Verlauf-Tab
 SK.ui.debtArchiveOpen = false;  // ist das Schulden-Archiv aufgeklappt?
 SK.ui.debtExpanded = {};        // welche Schulden-Posten zeigen ihre Zahlungsliste? (id -> true)
 SK.ui._backupDismissed = false; // Backup-Erinnerung fuer diese Sitzung weggeklickt?
+SK.ui.ferienArchOpen = false;   // Archiv "Frühere Reisen" aufgeklappt?
+SK.ui.ferienArchExpanded = {};  // welche Archiv-Reise zeigt ihre Detail-Aufschluesselung?
 
 /* ============ A) HELFER ============ */
 
@@ -613,7 +615,7 @@ SK.ui.renderEinstellungen = function () {
   // Märkte
   document.getElementById('se-cryptocur').value = SK.state.settings.cryptoWaehrung || 'chf';
 
-  document.getElementById('se-version').textContent = '2.2';
+  document.getElementById('se-version').textContent = '2.3';
 
   // Letztes Backup anzeigen (Erinnerung gegen Datenverlust)
   const bi = document.getElementById('se-backupinfo');
@@ -795,11 +797,20 @@ SK.ui.FERIEN_LINKS = [
 
 /* Fremdwaehrungs-Zusatz zu einem CHF-Betrag (oder '' wenn kein Kurs gesetzt).
    Kurs-Konvention: 1 [waehrung] = kurs CHF  ->  Fremdwaehrung = CHF / kurs. */
-SK.ui.ferienFx = function (chf) {
-  const f = SK.state.ferien;
-  if (!f.kurs || f.kurs <= 0) return '';
-  const fw = chf / f.kurs;
-  return '≈ ' + SK.ui.fmt(fw, Math.abs(fw) < 50 ? 2 : 0) + ' ' + SK.ui.esc(f.waehrung || '');
+SK.ui.ferienFxRaw = function (kurs, waehrung, chf) {
+  if (!kurs || kurs <= 0) return '';
+  const fw = chf / kurs;
+  return '≈ ' + SK.ui.fmt(fw, Math.abs(fw) < 50 ? 2 : 0) + ' ' + SK.ui.esc(waehrung || '');
+};
+SK.ui.ferienFx = function (chf) { const f = SK.state.ferien; return SK.ui.ferienFxRaw(f.kurs, f.waehrung, chf); };
+SK.ui.ferienFxOf = function (trip, chf) { return SK.ui.ferienFxRaw(trip.kurs, trip.waehrung, chf); };
+
+/* Lesbarer Datumsbereich einer Reise, z.B. "20. Juni – 29. Juni 2026". */
+SK.ui._ferienRange = function (t) {
+  if (!t.start || !t.ende) return '';
+  const s = new Date(t.start + 'T00:00:00'), e = new Date(t.ende + 'T00:00:00');
+  const f = function (d) { return d.getDate() + '. ' + MONATE[d.getMonth()]; };
+  return f(s) + ' – ' + f(e) + ' ' + e.getFullYear();
 };
 
 /* Einrichtungs-Formular (wenn noch keine Ferien laufen). */
@@ -812,6 +823,7 @@ SK.ui._ferienSetup = function () {
     })).join('');
   return '<div class="card fe-setup">'
     + '<p class="muted">Führe im Urlaub ein <strong>getrenntes</strong> Tagesbudget. Es beeinflusst dein normales Monatsbudget nicht – eigene Ausgaben, eigener Topf.</p>'
+    + '<label class="field"><span>Reiseziel / Name (optional)</span><input type="text" id="fe-name" maxlength="30" placeholder="z.B. Kroatien 2026"></label>'
     + '<label class="field"><span>Ferienbudget gesamt (CHF)</span><input type="number" id="fe-budget" inputmode="decimal" min="0" step="50" placeholder="z.B. 1000"></label>'
     + '<div class="fe-row2">'
       + '<label class="field"><span>Start</span><input type="date" id="fe-start" value="' + heute + '"></label>'
@@ -841,6 +853,36 @@ SK.ui._ferienRow = function (a) {
   + '</div>';
 };
 
+/* Archiv "Frühere Reisen" (einklappbar). Leerer String, wenn es keine gibt. */
+SK.ui._ferienArchive = function () {
+  const arr = SK.state.ferienArchiv || [];
+  if (!arr.length) return '';
+  const open = SK.ui.ferienArchOpen;
+  const rows = arr.slice().sort(function (a, b) { return (a.beendetAm < b.beendetAm) ? 1 : -1; }).map(function (t) {
+    const spent = SK.budget.ferienSpent(t);
+    const pct = t.budget > 0 ? Math.max(0, Math.min(100, (spent / t.budget) * 100)) : 0;
+    const expanded = !!SK.ui.ferienArchExpanded[t.id];
+    const cats = SK.budget.ferienByCategory(SK.state, t);
+    const fx = SK.ui.ferienFxOf(t, spent);
+    return '<div class="card fe-arch-card" data-trip="' + t.id + '">'
+      + '<div class="row-between"><div class="goal-head-name">' + SK.icon('sun', 'ic-pre') + SK.ui.esc(t.name || 'Ferien') + '</div>'
+        + '<button class="link-btn" data-act="ferien-arch-del" data-trip="' + t.id + '" title="Löschen">' + SK.icon('trash') + '</button></div>'
+      + '<div class="goal-mini-text">' + SK.ui._ferienRange(t) + '</div>'
+      + '<div class="progress"><div class="progress-fill" style="width:' + pct + '%"></div></div>'
+      + '<div class="goal-mini-text"><strong>' + SK.ui.fmt(spent) + '</strong> / ' + SK.ui.fmt(t.budget) + ' CHF ausgegeben' + (fx ? ' · ' + fx : '') + '</div>'
+      + (cats.length ? '<button class="link-btn" data-act="ferien-arch-toggle" data-trip="' + t.id + '">' + (expanded ? 'Details ausblenden' : 'Details nach Kategorie') + '</button>' : '')
+      + (expanded && cats.length ? '<div class="fe-cat-list">' + cats.map(function (c) {
+          return '<div class="legend-row"><span><i style="background:' + c.color + '"></i>' + SK.ui.esc(c.name) + '</span><b>' + SK.ui.fmt(c.betrag, 2) + '</b></div>';
+        }).join('') + '</div>' : '')
+    + '</div>';
+  }).join('');
+  return '<div class="fe-arch-wrap">'
+    + '<button class="archiv-head" data-act="ferien-arch-open"><span class="chev' + (open ? ' open' : '') + '" data-icon="chevron"></span>'
+      + '<span>Frühere Reisen (' + arr.length + ')</span></button>'
+    + '<div' + (open ? '' : ' class="hidden"') + '>' + rows + '</div>'
+  + '</div>';
+};
+
 /* Der ganze Ferien-Bildschirm (Einrichtung ODER laufende Ferien). */
 SK.ui.renderFerien = function () {
   const body = document.getElementById('fe-body');
@@ -848,7 +890,7 @@ SK.ui.renderFerien = function () {
   const f = SK.state.ferien;
 
   if (!f.aktiv) {
-    body.innerHTML = SK.ui._ferienSetup();
+    body.innerHTML = SK.ui._ferienSetup() + SK.ui._ferienArchive();
     SK.app.injectStaticIcons(body);
     return;
   }
@@ -875,6 +917,7 @@ SK.ui.renderFerien = function () {
   pct = Math.max(0, Math.min(100, pct));
 
   let html = '<div class="card card--lit hero fe-hero ampel-' + info.ampel + '">'
+    + (f.name ? '<div class="fe-trip-name">' + SK.ui.esc(f.name) + '</div>' : '')
     + '<div class="hero-label label">' + label + '</div>'
     + '<div class="hero-amount amount-hero">' + SK.ui.fmt(Math.round(amount)) + '<span class="cur">CHF</span></div>'
     + (fxAmount ? '<div class="fe-fx">' + fxAmount + '</div>' : '')
@@ -920,8 +963,8 @@ SK.ui.renderFerien = function () {
       }).join('')
   + '</div>';
 
-  // ---- Ferien beenden ----
-  html += '<button class="btn btn-ghost btn-block" data-act="ferien-reset"><span class="ic-pre" data-icon="trash"></span>Ferien beenden &amp; Topf leeren</button>';
+  // ---- Ferien beenden (wandert ins Archiv, wird NICHT geloescht) ----
+  html += '<button class="btn btn-ghost btn-block" data-act="ferien-end"><span class="ic-pre" data-icon="check"></span>Ferien beenden &amp; ins Archiv</button>';
 
   body.innerHTML = html;
   SK.app.injectStaticIcons(body);

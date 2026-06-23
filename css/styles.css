@@ -470,6 +470,22 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 .toast.danger { border-color: var(--red); }
 .toast.danger .toast-check { background: var(--red); color: #fff; }
 
+/* "Neue Version"-Banner (erscheint, wenn ein Update bereitsteht) */
+.update-bar {
+  position: fixed; left: 50%; transform: translateX(-50%) translateY(16px);
+  bottom: calc(var(--nav-h) + var(--safe-b) + 84px); z-index: 60;
+  display: flex; align-items: center; gap: 10px; max-width: calc(100% - 28px);
+  background: var(--card-3); border: 1px solid var(--border-strong); border-radius: 14px;
+  padding: 9px 10px 9px 14px; box-shadow: var(--sh-2);
+  opacity: 0; pointer-events: none; transition: opacity .3s, transform .3s;
+}
+.update-bar.show { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+.update-ico { display: inline-flex; color: var(--accent); }
+.update-ico .ic { width: 18px; height: 18px; }
+.update-txt { font-size: 0.9rem; font-weight: 600; white-space: nowrap; }
+.update-bar .btn-sm { white-space: nowrap; }
+@media (min-width: 860px) { .update-bar { bottom: 24px; } }
+
 /* ============ 6. ANIMATIONEN ============ */
 @keyframes fadeup { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.06); } 100% { transform: scale(1); } }
@@ -638,6 +654,13 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 }
 
 /* ============ 9. FERIENMODUS ============ */
+/* Reise-Name ueber der grossen Zahl im Ferien-Hero */
+.fe-trip-name { font-weight: 700; font-size: 1.05rem; margin-bottom: 4px; position: relative; }
+/* Archiv "Frühere Reisen" */
+.fe-arch-wrap { margin-top: 8px; }
+.fe-arch-wrap .card { margin-bottom: 10px; }
+.fe-arch-card .goal-mini-text { margin: 4px 0; }
+.fe-arch-card .progress { margin: 6px 0 4px; }
 .fe-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 /* min-width:0 laesst die Spalten schmaler werden als der Inhalt der
    Datums-/Zahlenfelder – sonst laeuft die Zeile auf dem Handy ueber. */

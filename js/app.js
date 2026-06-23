@@ -515,6 +515,7 @@ SK.app.addList = function () {
 
 /* Ferien starten: Werte aus dem Einrichtungs-Formular lesen & pruefen. */
 SK.app.startFerien = function () {
+  const name = (document.getElementById('fe-name').value || '').trim();
   const budget = parseFloat(document.getElementById('fe-budget').value);
   const start = document.getElementById('fe-start').value;
   const ende = document.getElementById('fe-ende').value;
@@ -526,6 +527,7 @@ SK.app.startFerien = function () {
   if (ende < start) { SK.ui.toast('Das Ende muss nach dem Start liegen', true); return; }
   SK.state.ferien = {
     aktiv: true,
+    name: name,
     budget: Math.round(budget * 100) / 100,
     start: start, ende: ende,
     waehrung: cur || 'EUR',
@@ -534,6 +536,22 @@ SK.app.startFerien = function () {
     startZielId: goalId || ''
   };
   SK.app.refresh(); SK.app.haptic(18); SK.ui.toast('Ferienmodus gestartet');
+};
+
+/* Ferien beenden: laufende Reise INS ARCHIV legen (nicht loeschen!) und den
+   Topf zuruecksetzen. So bleibt der Rueckblick erhalten. */
+SK.app.endFerien = function () {
+  const f = SK.state.ferien;
+  if (!confirm('Ferien beenden und ins Archiv legen? Der Rückblick bleibt unter „Frühere Reisen" erhalten.')) return;
+  const trip = Object.assign({}, f);
+  delete trip.aktiv;
+  trip.id = SK.uid();
+  trip.name = f.name || 'Ferien';
+  trip.beendetAm = SK.dateKey();
+  SK.state.ferienArchiv = SK.state.ferienArchiv || [];
+  SK.state.ferienArchiv.push(trip);
+  SK.state.ferien = SK.defaultState().ferien;
+  SK.app.refresh(); SK.ui.toast('Reise ins Archiv gelegt');
 };
 
 /* Ferien-Ausgabe erfassen (eigener Topf, nicht im Monatsverlauf). */
@@ -560,12 +578,6 @@ SK.app.openFerienExpense = function () {
   ]);
 };
 
-/* Ferien beenden & Topf leeren. */
-SK.app.resetFerien = function () {
-  if (!confirm('Ferienmodus beenden und den Ferien-Topf leeren? Die erfassten Ferien-Ausgaben werden gelöscht.')) return;
-  SK.state.ferien = SK.defaultState().ferien;
-  SK.app.refresh(); SK.ui.toast('Ferienmodus beendet');
-};
 
 /* =====================================================================
    EREIGNISSE VERBINDEN (Klicks, Eingaben)
@@ -762,8 +774,17 @@ SK.app.onClick = function (ev) {
   } else if (a === 'ferien-delexp') {
     SK.state.ferien.ausgaben = (SK.state.ferien.ausgaben || []).filter(function (x) { return x.id !== act.dataset.id; });
     SK.app.refresh(); SK.ui.toast('Gelöscht');
-  } else if (a === 'ferien-reset') {
-    SK.app.resetFerien();
+  } else if (a === 'ferien-end') {
+    SK.app.endFerien();
+  } else if (a === 'ferien-arch-open') {
+    SK.ui.ferienArchOpen = !SK.ui.ferienArchOpen; SK.ui.renderFerien();
+  } else if (a === 'ferien-arch-toggle') {
+    SK.ui.ferienArchExpanded[act.dataset.trip] = !SK.ui.ferienArchExpanded[act.dataset.trip]; SK.ui.renderFerien();
+  } else if (a === 'ferien-arch-del') {
+    if (confirm('Diese archivierte Reise endgültig löschen?')) {
+      SK.state.ferienArchiv = (SK.state.ferienArchiv || []).filter(function (x) { return x.id !== act.dataset.trip; });
+      SK.app.refresh(); SK.ui.toast('Reise gelöscht');
+    }
   }
 };
 
@@ -818,14 +839,44 @@ SK.app.importFile = function (ev) {
 /* =====================================================================
    SERVICE WORKER (macht die App offline-faehig)
    ===================================================================== */
+SK.app._updating = false;
 SK.app.registerSW = function () {
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('service-worker.js').catch(function (e) {
-        console.warn('Service Worker konnte nicht registriert werden:', e);
+  if (!('serviceWorker' in navigator)) return;
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('service-worker.js').then(function (reg) {
+      // Schon eine neue Version bereit? (z.B. beim Oeffnen)
+      if (reg.waiting && navigator.serviceWorker.controller) SK.app.showUpdate(reg.waiting);
+      // Auf neu eintreffende Updates lauschen
+      reg.addEventListener('updatefound', function () {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', function () {
+          // "installed" + es gibt schon einen Controller = echtes Update (kein Erststart)
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) SK.app.showUpdate(nw);
+        });
       });
+    }).catch(function (e) {
+      console.warn('Service Worker konnte nicht registriert werden:', e);
     });
-  }
+    // Wenn die neue Version uebernimmt, EINMAL neu laden – aber nur, wenn der
+    // Nutzer das Update selbst ausgeloest hat (sonst Reload beim Erststart).
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (SK.app._updating) { SK.app._updating = false; window.location.reload(); }
+    });
+  });
+};
+
+/* Zeigt das "Neue Version verfügbar"-Banner und verdrahtet den Knopf. */
+SK.app.showUpdate = function (worker) {
+  const bar = document.getElementById('update-bar');
+  if (!bar) return;
+  bar.classList.add('show');
+  const btn = document.getElementById('update-btn');
+  btn.onclick = function () {
+    SK.app._updating = true;
+    btn.textContent = 'Lädt …';
+    worker.postMessage({ type: 'SKIP_WAITING' });
+  };
 };
 
 /* App starten, sobald die Seite bereit ist. */

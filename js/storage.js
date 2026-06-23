@@ -49,6 +49,7 @@ function mergeDefaults(saved) {
      behalten (so bekommen Bestandsdaten den neuen Topf, ohne Datenverlust). */
   out.ferien = Object.assign({}, def.ferien, saved.ferien || {});
   if (!Array.isArray(out.ferien.ausgaben)) out.ferien.ausgaben = [];
+  out.ferienArchiv = Array.isArray(saved.ferienArchiv) ? saved.ferienArchiv : [];
 
   /* Einmalige v2-Nachruestung fuer bereits bestehende Installationen:
      fuegt die monatlichen Spar-Toepfe (Motorrad/Sparkonto) und die

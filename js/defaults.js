@@ -228,6 +228,7 @@ SK.defaultState = function () {
                        in den Ferien-Topf uebernommen wurde (nur Merker) */
     ferien: {
       aktiv: false,
+      name: '',
       budget: 0,
       start: '',
       ende: '',
@@ -236,6 +237,12 @@ SK.defaultState = function () {
       ausgaben: [],
       startZielId: ''
     },
+
+    /* ---- Archiv frueherer Reisen ----
+       Beim "Ferien beenden" wandert die laufende Reise hierher (statt geloescht
+       zu werden), damit der Rueckblick erhalten bleibt. Eintrag = wie 'ferien'
+       plus id + beendetAm. */
+    ferienArchiv: [],
 
     /* ---- interne Notizen ---- */
     meta: {

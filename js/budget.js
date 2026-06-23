@@ -516,9 +516,10 @@ SK.budget.ferienInfo = function (state, heute) {
 };
 
 /* Ferien-Ausgaben nach Kategorie (fuer den Rueckblick).
+   trip = optional eine bestimmte Reise (z.B. aus dem Archiv); sonst die laufende.
    Raus: Array [{ kategorie, name, color, betrag }], groesste zuerst. */
-SK.budget.ferienByCategory = function (state) {
-  const f = state.ferien;
+SK.budget.ferienByCategory = function (state, trip) {
+  const f = trip || state.ferien;
   const summen = {};
   for (const a of (f.ausgaben || [])) summen[a.kategorie] = (summen[a.kategorie] || 0) + a.betrag;
   const out = [];
