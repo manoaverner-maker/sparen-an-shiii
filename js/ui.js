@@ -141,6 +141,17 @@ SK.ui.renderTop = function () {
   document.getElementById('top-month').textContent = MONATE[d.getMonth()] + ' ' + d.getFullYear();
 };
 
+/* Zeile "Nächster Lohn: …" fuers Dashboard (Datum + in X Tagen). */
+SK.ui.paydayLine = function (c) {
+  const d = new Date(c.lohnDatum + 'T00:00:00');
+  const dat = WOCHENTAGE[d.getDay()] + ', ' + d.getDate() + '. ' + MONATE[d.getMonth()];
+  let wann;
+  if (c.tageBisLohn <= 0) wann = '<b>heute</b>';
+  else if (c.tageBisLohn === 1) wann = '<b>morgen</b>';
+  else wann = 'in <b>' + c.tageBisLohn + '</b> Tagen';
+  return SK.icon('coins', 'ic-pre') + 'Nächster Lohn: ' + dat + ' · ' + wann;
+};
+
 /* ---- HEUTE (Dashboard) ---- */
 SK.ui.renderHeute = function () {
   const c = SK.budget.compute(SK.state);
@@ -151,7 +162,7 @@ SK.ui.renderHeute = function () {
   hero.classList.add('ampel-' + c.ampel);
   SK.ui.countUp(document.getElementById('hd-heute'), Math.round(c.heuteNochVerfuegbar), 0);
   document.getElementById('hd-tagesbudget').textContent = SK.ui.fmt(c.tagesbudget);
-  document.getElementById('hd-resttage').textContent = c.restTage;
+  document.getElementById('hd-payday').innerHTML = SK.ui.paydayLine(c);
   let pct = c.tagesbudget > 0 ? (c.heuteNochVerfuegbar / c.tagesbudget) * 100 : 0;
   pct = Math.max(0, Math.min(100, pct));
   document.getElementById('hd-ampelbar').style.width = pct + '%';
@@ -675,7 +686,7 @@ SK.ui.renderEinstellungen = function () {
   // Märkte
   document.getElementById('se-cryptocur').value = SK.state.settings.cryptoWaehrung || 'chf';
 
-  document.getElementById('se-version').textContent = '2.6';
+  document.getElementById('se-version').textContent = '2.7';
 
   // Letztes Backup anzeigen (Erinnerung gegen Datenverlust)
   const bi = document.getElementById('se-backupinfo');

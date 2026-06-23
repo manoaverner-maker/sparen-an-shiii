@@ -52,6 +52,87 @@ SK.budget.monthsUntil = function (zieldatumStr, von) {
 };
 
 /* =====================================================================
+   TEIL 1b: Lohn-Datum (Payday) & Budget-Periode
+   =====================================================================
+   Der Budget-"Monat" laeuft NICHT vom 1. bis 31., sondern von Lohn zu Lohn.
+   Der Lohn kommt am 25.; faellt der 25. auf Sa/So/Feiertag (Kanton Zuerich),
+   kommt er am letzten Arbeitstag davor. Das Tagesbudget setzt sich am Tag
+   NACH dem Lohn zurueck (am Lohntag selbst zahlt man oft Rechnungen und der
+   Lohn kommt evtl. erst im Tagesverlauf).
+   --------------------------------------------------------------------- */
+
+/* Ostersonntag (Anonymous-Gregorian-Algorithmus) – Basis fuer bewegliche Feiertage. */
+SK.budget.easter = function (year) {
+  const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+  const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+};
+
+/* Gesetzliche Feiertage Kanton Zuerich eines Jahres (Map 'JJJJ-MM-TT' -> true).
+   Fest: Neujahr, Berchtoldstag, Tag der Arbeit, Bundesfeier, Weihnachten,
+   Stephanstag. Beweglich (Ostern): Karfreitag, Ostermontag, Auffahrt, Pfingstmontag. */
+SK.budget._holCache = {};
+SK.budget.holidays = function (year) {
+  if (SK.budget._holCache[year]) return SK.budget._holCache[year];
+  const set = {};
+  const add = function (dt) { set[SK.dateKey(dt)] = true; };
+  [[0, 1], [0, 2], [4, 1], [7, 1], [11, 25], [11, 26]].forEach(function (md) { add(new Date(year, md[0], md[1])); });
+  const easter = SK.budget.easter(year);
+  const off = function (n) { const dt = new Date(easter); dt.setDate(dt.getDate() + n); return dt; };
+  add(off(-2)); add(off(1)); add(off(39)); add(off(50));
+  SK.budget._holCache[year] = set;
+  return set;
+};
+
+/* Ist d ein Arbeitstag (kein Sa/So, kein ZH-Feiertag)? */
+SK.budget.isWorkday = function (d) {
+  const wd = d.getDay();
+  if (wd === 0 || wd === 6) return false;
+  return !SK.budget.holidays(d.getFullYear())[SK.dateKey(d)];
+};
+
+/* Lohn-Datum fuer Jahr/Monat: der 25., sonst der letzte Arbeitstag davor. */
+SK.budget.payday = function (year, monthIndex) {
+  const d = new Date(year, monthIndex, 25);
+  let guard = 0;
+  while (!SK.budget.isWorkday(d) && guard < 20) { d.setDate(d.getDate() - 1); guard++; }
+  return d;
+};
+
+/* Die Budget-Periode (Lohn -> Lohn), die das Datum d enthaelt.
+   Eine Periode laeuft vom Tag NACH dem vorigen Lohn bis zum naechsten Lohn.
+   Raus: { start, end ('JJJJ-MM-TT'), days, dayIndex, daysLeft }. */
+SK.budget.currentPeriod = function (d) {
+  const d0 = new Date(SK.dateKey(d) + 'T00:00:00');
+  const pdThis0 = new Date(SK.dateKey(SK.budget.payday(d.getFullYear(), d.getMonth())) + 'T00:00:00');
+  let start, end;
+  if (d0 <= pdThis0) {
+    end = pdThis0;
+    start = new Date(SK.dateKey(SK.budget.payday(d.getFullYear(), d.getMonth() - 1)) + 'T00:00:00');
+    start.setDate(start.getDate() + 1);
+  } else {
+    start = new Date(pdThis0); start.setDate(start.getDate() + 1);
+    end = new Date(SK.dateKey(SK.budget.payday(d.getFullYear(), d.getMonth() + 1)) + 'T00:00:00');
+  }
+  const days = Math.round((end - start) / 86400000) + 1;
+  const dayIndex = Math.round((d0 - start) / 86400000) + 1;
+  const daysLeft = Math.max(1, Math.round((end - d0) / 86400000) + 1);
+  return { start: SK.dateKey(start), end: SK.dateKey(end), days: days, dayIndex: dayIndex, daysLeft: daysLeft };
+};
+
+/* Buchungen der aktuellen Budget-Periode (Lohn -> Lohn). */
+SK.budget.periodEntries = function (state, d) {
+  const p = SK.budget.currentPeriod(d);
+  return state.entries.filter(function (e) { return e.datum >= p.start && e.datum <= p.end; });
+};
+
+/* =====================================================================
    TEIL 2: Sparziele
    ===================================================================== */
 
@@ -169,14 +250,16 @@ SK.budget.spendMonth = function (state, d) {
    --------------------------------------------------------------------- */
 SK.budget.dayInfo = function (state, d) {
   const heuteKey = SK.dateKey(d);
-  const eintraege = SK.budget.monthEntries(state, d);
+  // Die Budget-Periode laeuft von Lohn zu Lohn (nicht Kalendermonat).
+  const period = SK.budget.currentPeriod(d);
+  const eintraege = state.entries.filter(function (e) { return e.datum >= period.start && e.datum <= period.end; });
 
   // (1)+(2) Sparrate, (3) Verfuegbar
   const sparrate = SK.budget.totalMonthlyRate(state, d);
   // Optionale Schulden-Rate: wie die Sparrate VORAB reservieren (separater Topf).
   // Die einzelnen Schulden-Teilzahlungen selbst zaehlen NICHT ins Tagesbudget.
   const schuldenRate = SK.budget.schuldenRate(state);
-  // Verfuegbar diesen Monat: entweder das selbst gesetzte feste Alltagsbudget
+  // Verfuegbar pro Periode: entweder das selbst gesetzte feste Alltagsbudget
   // (wenn > 0), sonst automatisch aus Lohn - Fixkosten - Sparrate - Schulden-Rate.
   const manuell = state.settings.alltagsbudget;
   const verfuegbar = (manuell && manuell > 0)
@@ -194,8 +277,8 @@ SK.budget.dayInfo = function (state, d) {
   // (5) noch verfuegbar zu Tagesbeginn
   const nochVerfuegbar = verfuegbar - abgeflossenVorher;
 
-  // (6) Tagesbudget = Rest / verbleibende Tage (inkl. heute)
-  const restTage = SK.budget.daysLeftInMonth(d);
+  // (6) Tagesbudget = Rest / verbleibende Tage der Periode (inkl. heute)
+  const restTage = period.daysLeft;
   const tagesbudget = nochVerfuegbar / restTage;
 
   return {
@@ -208,7 +291,8 @@ SK.budget.dayInfo = function (state, d) {
     // Ein Tag OHNE Ausgaben gilt immer als "unter Budget" – auch wenn das
     // Tagesbudget durch frueheres Mehr-Ausgeben rechnerisch negativ ist.
     // Sonst wuerde ein disziplinierter Null-Tag die Streak abreissen.
-    unterBudget: abflussHeute === 0 || abflussHeute <= tagesbudget
+    unterBudget: abflussHeute === 0 || abflussHeute <= tagesbudget,
+    periode: period
   };
 };
 
@@ -221,14 +305,22 @@ SK.budget.dayInfo = function (state, d) {
 SK.budget.compute = function (state, heute) {
   heute = heute || new Date();
   const day = SK.budget.dayInfo(state, heute);
+  const period = day.periode;
 
-  const tag = heute.getDate();
-  const tageImMonat = SK.budget.daysInMonth(heute);
-  const restTage = SK.budget.daysLeftInMonth(heute);
+  // "Monat" = Budget-Periode (Lohn -> Lohn)
+  const tag = period.dayIndex;       // wievielter Tag der Periode
+  const tageImMonat = period.days;   // Tage in der Periode
+  const restTage = period.daysLeft;  // verbleibende Tage (inkl. heute)
 
-  const outflowMonat = SK.budget.outflowMonth(state, heute); // Ausgaben + Sparen
-  const spendMonat = SK.budget.spendMonth(state, heute);     // nur Ausgaben
+  // Abfluss/Ausgaben innerhalb der Periode
+  const periodE = state.entries.filter(function (e) { return e.datum >= period.start && e.datum <= period.end; });
+  let outflowMonat = 0, spendMonat = 0;
+  for (const e of periodE) { outflowMonat += e.betrag; if (e.typ !== 'sparen') spendMonat += e.betrag; }
   const nochVerfuegbarMonat = day.verfuegbar - outflowMonat;
+
+  // Lohn-Info: der naechste Lohn = Ende der aktuellen Periode
+  const heuteKey = SK.dateKey(heute);
+  const tageBisLohn = Math.round((new Date(period.end + 'T00:00:00') - new Date(heuteKey + 'T00:00:00')) / 86400000);
 
   /* ---- Ampelfarbe fuer "Heute noch verfuegbar" ----
      gruen: noch mehr als ein Drittel des Tagesbudgets uebrig
@@ -284,7 +376,11 @@ SK.budget.compute = function (state, heute) {
     paceStatus: paceStatus,
     // Hochrechnung
     hochrechnung: hochrechnung,
-    hochrechnungStatus: hochrechnungStatus
+    hochrechnungStatus: hochrechnungStatus,
+    // Lohn / Periode
+    lohnDatum: period.end,       // 'JJJJ-MM-TT' des naechsten Lohns
+    tageBisLohn: tageBisLohn,    // Tage bis zum naechsten Lohn (0 = heute)
+    periode: period
   };
 };
 
