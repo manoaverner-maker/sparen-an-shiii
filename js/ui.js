@@ -328,13 +328,16 @@ SK.ui._sortEntries = function (a, b) {
 
 /* Baut eine einzelne Ausgaben-Zeile als HTML. */
 SK.ui._entryRow = function (e) {
-  const cat = SK.ui.cat(e.typ === 'sparen' ? 'sparen' : e.kategorie);
   const istSparen = e.typ === 'sparen';
-  const notiz = e.notiz ? e.notiz : (istSparen ? 'ins Sparziel' : cat.name);
+  const istEinnahme = e.typ === 'einnahme';
+  const cat = istEinnahme ? { name: 'Einnahme', color: '#19e3a6', icon: 'coins' } : SK.ui.cat(istSparen ? 'sparen' : e.kategorie);
+  const notiz = e.notiz ? e.notiz : (istSparen ? 'ins Sparziel' : (istEinnahme ? 'Geld hinzugefügt' : cat.name));
+  const plus = istSparen || istEinnahme;
+  const amtCls = istEinnahme ? ' income' : (istSparen ? ' saving' : '');
   return '<div class="entry" data-id="' + e.id + '">'
     + '<div class="entry-ico" style="background:' + cat.color + '22;color:' + cat.color + '">' + SK.icon(cat.icon) + '</div>'
     + '<div class="entry-main"><div class="entry-cat">' + cat.name + '</div><div class="entry-note">' + SK.ui.esc(notiz) + '</div></div>'
-    + '<div class="entry-amt' + (istSparen ? ' saving' : '') + '">' + (istSparen ? '+' : '−') + SK.ui.fmt(e.betrag, 2) + '</div>'
+    + '<div class="entry-amt' + amtCls + '">' + (plus ? '+' : '−') + SK.ui.fmt(e.betrag, 2) + '</div>'
     + '<div class="entry-actions">'
       + '<button data-act="edit" data-id="' + e.id + '" title="Bearbeiten">' + SK.icon('pencil') + '</button>'
       + '<button data-act="del" data-id="' + e.id + '" title="Löschen">' + SK.icon('trash') + '</button>'
@@ -711,7 +714,7 @@ SK.ui.renderEinstellungen = function () {
   // Märkte
   document.getElementById('se-cryptocur').value = SK.state.settings.cryptoWaehrung || 'chf';
 
-  document.getElementById('se-version').textContent = '2.8';
+  document.getElementById('se-version').textContent = '2.9';
 
   // Letztes Backup anzeigen (Erinnerung gegen Datenverlust)
   const bi = document.getElementById('se-backupinfo');

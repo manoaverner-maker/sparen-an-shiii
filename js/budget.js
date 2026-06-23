@@ -227,7 +227,7 @@ SK.budget.outflowMonth = function (state, d) {
    weil Sparen keine "Ausgabe" ist. */
 SK.budget.spendMonth = function (state, d) {
   return SK.budget.monthEntries(state, d)
-    .filter(function (e) { return e.typ !== 'sparen'; })
+    .filter(function (e) { return e.typ !== 'sparen' && e.typ !== 'einnahme'; })
     .reduce(function (s, e) { return s + e.betrag; }, 0);
 };
 
@@ -262,14 +262,22 @@ SK.budget.dayInfo = function (state, d) {
   // Verfuegbar pro Periode: entweder das selbst gesetzte feste Alltagsbudget
   // (wenn > 0), sonst automatisch aus Lohn - Fixkosten - Sparrate - Schulden-Rate.
   const manuell = state.settings.alltagsbudget;
-  const verfuegbar = (manuell && manuell > 0)
+  // Zusaetzliche EINNAHMEN dieser Periode erhoehen das verfuegbare Geld
+  // (und verteilen sich so auf die restlichen Tage = hoeheres Tagesbudget).
+  let einnahmen = 0;
+  for (const e of eintraege) if (e.typ === 'einnahme') einnahmen += e.betrag;
+  const basis = (manuell && manuell > 0)
     ? manuell
     : (state.settings.lohn - SK.budget.fixkostenEffektiv(state) - sparrate - schuldenRate);
+  const verfuegbar = basis + einnahmen;
 
-  // (4) abgeflossen vor dem betrachteten Tag, und (heute) am Tag selbst
+  // (4) abgeflossen vor dem betrachteten Tag, und (heute) am Tag selbst.
+  //   Automatische Spar-Buchungen (auto) sind schon in der Sparrate reserviert,
+  //   Einnahmen liegen im verfuegbaren Geld -> beide hier NICHT als Abfluss zaehlen.
   let abgeflossenVorher = 0;
   let abflussHeute = 0;
   for (const e of eintraege) {
+    if (e.auto || e.typ === 'einnahme') continue;
     if (e.datum < heuteKey) abgeflossenVorher += e.betrag;
     else if (e.datum === heuteKey) abflussHeute += e.betrag;
   }
@@ -312,10 +320,14 @@ SK.budget.compute = function (state, heute) {
   const tageImMonat = period.days;   // Tage in der Periode
   const restTage = period.daysLeft;  // verbleibende Tage (inkl. heute)
 
-  // Abfluss/Ausgaben innerhalb der Periode
+  // Abfluss/Ausgaben innerhalb der Periode (auto-Sparen & Einnahmen ausgenommen)
   const periodE = state.entries.filter(function (e) { return e.datum >= period.start && e.datum <= period.end; });
   let outflowMonat = 0, spendMonat = 0;
-  for (const e of periodE) { outflowMonat += e.betrag; if (e.typ !== 'sparen') spendMonat += e.betrag; }
+  for (const e of periodE) {
+    if (e.auto || e.typ === 'einnahme') continue;
+    outflowMonat += e.betrag;
+    if (e.typ !== 'sparen') spendMonat += e.betrag;   // nur echte Ausgaben
+  }
   const nochVerfuegbarMonat = day.verfuegbar - outflowMonat;
 
   // Lohn-Info: der naechste Lohn = Ende der aktuellen Periode
@@ -428,7 +440,7 @@ SK.budget.monthSeries = function (state, d) {
   // Ausgaben pro Tag sammeln (nur echte Ausgaben)
   const proTag = new Array(tageImMonat + 1).fill(0);
   for (const e of SK.budget.monthEntries(state, d)) {
-    if (e.typ === 'sparen') continue;
+    if (e.typ === 'sparen' || e.typ === 'einnahme') continue;
     const tag = parseInt(e.datum.slice(8, 10), 10);
     if (tag >= 1 && tag <= tageImMonat) proTag[tag] += e.betrag;
   }
@@ -450,7 +462,7 @@ SK.budget.monthSeries = function (state, d) {
 SK.budget.byCategory = function (state, d) {
   const summen = {};
   for (const e of SK.budget.monthEntries(state, d)) {
-    if (e.typ === 'sparen') continue;
+    if (e.typ === 'sparen' || e.typ === 'einnahme') continue;
     summen[e.kategorie] = (summen[e.kategorie] || 0) + e.betrag;
   }
   const out = [];
@@ -480,7 +492,7 @@ SK.budget.daySpends = function (state, d) {
   const n = SK.budget.daysInMonth(d);
   const proTag = new Array(n + 1).fill(0);
   for (const e of SK.budget.monthEntries(state, d)) {
-    if (e.typ === 'sparen') continue;
+    if (e.typ === 'sparen' || e.typ === 'einnahme') continue;
     const tag = parseInt(e.datum.slice(8, 10), 10);
     if (tag >= 1 && tag <= n) proTag[tag] += e.betrag;
   }

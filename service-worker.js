@@ -16,7 +16,7 @@
    damit der Browser die neuen Dateien laedt statt der alten.
    ===================================================================== */
 
-const CACHE_NAME = 'sparkurs-v11';
+const CACHE_NAME = 'sparkurs-v12';
 
 /* Alle Dateien, die fuer den Offline-Betrieb gebraucht werden.
    Pfade relativ ("./"), damit es auch in einem Unterordner (GitHub Pages)

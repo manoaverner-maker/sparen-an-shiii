@@ -33,9 +33,47 @@ SK.app.init = function () {
   SK.storage.load();          // Daten laden (oder Standard anlegen)
   SK.app.injectStaticIcons(); // feste Icons in Navigation/Knoepfe einsetzen
   SK.app.handleRollover();    // Monatswechsel / Logbuch nachfuehren
+  SK.app.runAutoSavings();    // monatliche Spar-Toepfe automatisch gutschreiben
+  SK.storage.save();
   SK.app.bindEvents();        // auf Klicks reagieren
   SK.ui.render();             // erstes Zeichnen
   SK.app.registerSW();        // Offline-Service-Worker
+};
+
+/* =====================================================================
+   AUTOMATISCHES ANSPAREN (feste Monats-Toepfe)
+   =====================================================================
+   Schreibt jede neue Lohn-Periode den festen Betrag der "monatlich"-Ziele
+   (z.B. Motorrad 250, Sparkonto 250) automatisch dem jeweiligen Spar-Topf
+   gut (Buchung mit auto:true). Diese Buchungen senken das Tagesbudget NICHT
+   noch einmal (die Sparrate ist dort schon reserviert) – sie lassen nur dein
+   Erspartes sichtbar wachsen. Loescht du so eine Buchung, kommt sie NICHT
+   zurueck (die Periode gilt als erledigt).
+   --------------------------------------------------------------------- */
+SK.app.runAutoSavings = function () {
+  const m = SK.state.meta;
+  const heute = new Date();
+  const heuteKey = SK.dateKey(heute);
+  const cur = SK.budget.currentPeriod(heute);
+  // Erstaktivierung: ab der naechsten Periode (= ab dem naechsten Lohn) starten.
+  // Faellt heute genau auf einen Perioden-Start (Tag nach dem Lohn), zaehlt sie schon.
+  if (!m.autoSaveSince) {
+    if (cur.start >= heuteKey) m.autoSaveSince = cur.start;
+    else { const ns = new Date(cur.end + 'T00:00:00'); ns.setDate(ns.getDate() + 1); m.autoSaveSince = SK.dateKey(ns); }
+    m.autoSavedPeriods = m.autoSavedPeriods || [];
+  }
+  if (cur.start < m.autoSaveSince) return false;                       // Periode vor dem Start
+  if ((m.autoSavedPeriods || []).indexOf(cur.end) !== -1) return false; // schon gebucht
+  let added = false;
+  SK.state.goals.forEach(function (g) {
+    if (g.archiviert || g.modus !== 'monatlich') return;              // nur feste Monats-Toepfe
+    const betrag = g.monatlich || 0;
+    if (betrag <= 0) return;
+    SK.state.entries.push({ id: SK.uid(), datum: cur.start, betrag: Math.round(betrag * 100) / 100, typ: 'sparen', goalId: g.id, notiz: 'Automatisch gespart', auto: true });
+    added = true;
+  });
+  m.autoSavedPeriods.push(cur.end);
+  return added;
 };
 
 /* Setzt in jedes Element mit data-icon="name" das passende SVG-Icon ein.
@@ -206,6 +244,28 @@ SK.app.tagesrestSichern = function () {
   SK.ui.toast(SK.ui.fmt(rest) + ' CHF in ' + goal.name + ' gesichert');
   SK.app.haptic(18);
   SK.app.pulseHero();
+};
+
+/* "Geld hinzufuegen" (Einnahme): erhoeht das verfuegbare Geld der Periode
+   und damit das Tagesbudget. Verschiebt man es danach in ein Sparziel
+   (Einzahlen / Tagesrest sichern), sinkt das Tagesbudget wieder. */
+SK.app.openIncomeModal = function () {
+  const body =
+    '<label class="field"><span>Betrag (CHF)</span><input type="number" id="m-betrag" inputmode="decimal" placeholder="0" min="0.05" step="0.05"></label>'
+    + '<label class="field"><span>Woher? (optional)</span><input type="text" id="m-notiz" maxlength="60" placeholder="z.B. Geschenk, Nebenjob, Rückzahlung"></label>'
+    + '<label class="field"><span>Datum</span><input type="date" id="m-datum" value="' + SK.dateKey() + '"></label>'
+    + '<p class="cap">Erhöht dein verfügbares Geld dieser Periode – das Tagesbudget steigt sofort. Verschiebst du es danach in ein Sparziel, sinkt es wieder.</p>';
+  SK.app.openModal('Geld hinzufügen', body, [
+    { label: 'Abbrechen', cls: 'btn-ghost', onClick: SK.app.closeModal },
+    { label: 'Hinzufügen', cls: 'btn-accent', onClick: function () {
+        const betrag = parseFloat(document.getElementById('m-betrag').value);
+        if (!betrag || betrag <= 0) { SK.ui.toast('Bitte einen Betrag eingeben', true); return; }
+        const datum = document.getElementById('m-datum').value || SK.dateKey();
+        const notiz = document.getElementById('m-notiz').value.trim();
+        SK.state.entries.push({ id: SK.uid(), datum: datum, betrag: Math.round(betrag * 100) / 100, typ: 'einnahme', notiz: notiz });
+        SK.app.refresh(); SK.app.closeModal(); SK.app.haptic(); SK.ui.toast('Geld hinzugefügt'); SK.app.pulseHero();
+      } }
+  ]);
 };
 
 /* =====================================================================
@@ -601,6 +661,8 @@ SK.app.bindEvents = function () {
 
   // Tagesrest sichern
   document.getElementById('btn-tagesrest').addEventListener('click', SK.app.tagesrestSichern);
+  // Geld hinzufuegen (Einnahme)
+  document.getElementById('btn-income').addEventListener('click', SK.app.openIncomeModal);
 
   // Ziele / Abos / Schulden / Bussen / Listen hinzufuegen
   document.getElementById('btn-add-ziel').addEventListener('click', function () { SK.app.openGoalModal(null); });
@@ -688,7 +750,7 @@ SK.app.onClick = function (ev) {
 
   if (a === 'edit') {
     const e = SK.state.entries.find(function (x) { return x.id === act.dataset.id; });
-    if (e && e.typ === 'sparen') { SK.ui.toast('Spar-Buchung: bitte löschen statt bearbeiten', true); return; }
+    if (e && (e.typ === 'sparen' || e.typ === 'einnahme')) { SK.ui.toast('Bitte löschen statt bearbeiten', true); return; }
     if (e) SK.app.openSheet(e);
   } else if (a === 'del') {
     SK.state.entries = SK.state.entries.filter(function (x) { return x.id !== act.dataset.id; });
