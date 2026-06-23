@@ -615,7 +615,7 @@ SK.ui.renderEinstellungen = function () {
   // Märkte
   document.getElementById('se-cryptocur').value = SK.state.settings.cryptoWaehrung || 'chf';
 
-  document.getElementById('se-version').textContent = '2.3';
+  document.getElementById('se-version').textContent = '2.4';
 
   // Letztes Backup anzeigen (Erinnerung gegen Datenverlust)
   const bi = document.getElementById('se-backupinfo');
