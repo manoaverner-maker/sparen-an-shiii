@@ -72,40 +72,77 @@ function mergeDefaults(saved) {
 }
 
 /* ---------------------------------------------------------------------
+   requestPersistence()  -> bittet den Browser, die Daten NICHT zu loeschen.
+   Wichtig auf dem iPhone/Handy: ohne diese Bitte raeumt das Betriebssystem
+   den lokalen Speicher einer Web-App nach einiger Zeit der Nichtnutzung
+   oder bei Speichermangel von selbst weg ("eviction"). Mit der Bitte um
+   "persistenten" Speicher bleibt er deutlich zuverlaessiger erhalten.
+   (Wird trotzdem nicht garantiert -> zusaetzlich ab und zu ein Backup!)
+   --------------------------------------------------------------------- */
+SK.storage.requestPersistence = function () {
+  try {
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persisted().then(function (already) {
+        if (!already) navigator.storage.persist().catch(function () {});
+      }).catch(function () {});
+    }
+  } catch (e) { /* nicht unterstuetzt -> egal */ }
+};
+
+/* ---------------------------------------------------------------------
    load()  -> laedt den Zustand aus dem localStorage.
-   Gibt es noch keine Daten (erster Start), wird der Standardzustand aus
-   defaults.js genommen und gleich gespeichert.
+   ROBUST: zerstoert NIE vorhandene Daten. Reihenfolge:
+     1) Haupt-Schluessel lesen. Klappt das Parsen nicht, werden die
+        Rohdaten unter CORRUPT_KEY aufbewahrt (nichts geht verloren).
+     2) Sonst aus der Sicherungs-Kopie (BACKUP_KEY) wiederherstellen.
+     3) Erst wenn wirklich gar nichts da ist: frischer Standardzustand.
    Rein: nichts. Raus: der Zustand (liegt danach in SK.state).
    --------------------------------------------------------------------- */
 SK.storage.load = function () {
-  let state;
+  let state = null;
+  let raw = null;
   try {
-    const raw = localStorage.getItem(SK.STORAGE_KEY);
-    if (raw) {
-      state = mergeDefaults(JSON.parse(raw)); // vorhandene Daten
-    } else {
-      state = SK.defaultState();               // allererster Start
-    }
+    raw = localStorage.getItem(SK.STORAGE_KEY);
+    if (raw) state = mergeDefaults(JSON.parse(raw)); // vorhandene Daten
   } catch (e) {
-    // Falls die Daten kaputt sind, lieber neu starten als abstuerzen.
-    console.warn('Sparkurs: Konnte gespeicherte Daten nicht lesen, starte neu.', e);
-    state = SK.defaultState();
+    // Haupt-Schluessel unleserlich -> Rohdaten sichern (NICHT ueberschreiben!)
+    console.warn('Sparkurs: Hauptdaten unleserlich – versuche Sicherungspunkt.', e);
+    try { if (raw) localStorage.setItem(SK.CORRUPT_KEY, raw); } catch (_) { /* egal */ }
+    state = null;
   }
+  // Fallback: aus der Sicherungs-Kopie wiederherstellen
+  if (!state) {
+    try {
+      const bak = localStorage.getItem(SK.BACKUP_KEY);
+      if (bak) { state = mergeDefaults(JSON.parse(bak)); console.warn('Sparkurs: aus Sicherungspunkt wiederhergestellt.'); }
+    } catch (_) { state = null; }
+  }
+  // Letzter Ausweg: frischer Standardzustand (erster Start oder alles weg)
+  if (!state) state = SK.defaultState();
+
   SK.state = state;
-  SK.storage.save(); // sicherstellen, dass etwas Gueltiges gespeichert ist
+  SK.storage.save();             // sofort wieder gueltig + Sicherungspunkt anlegen
+  SK.storage.requestPersistence();
   return state;
 };
 
 /* ---------------------------------------------------------------------
    save()  -> schreibt SK.state zurueck in den localStorage.
+   Schreibt ZWEI Kopien: den Haupt-Schluessel und einen Sicherungspunkt.
    Wird nach jeder Aenderung aufgerufen. Sehr guenstig, da rein lokal.
    --------------------------------------------------------------------- */
 SK.storage.save = function () {
+  let json;
+  try { json = JSON.stringify(SK.state); }
+  catch (e) { console.error('Sparkurs: Zustand nicht serialisierbar.', e); return; }
   try {
-    localStorage.setItem(SK.STORAGE_KEY, JSON.stringify(SK.state));
+    localStorage.setItem(SK.STORAGE_KEY, json);
+    // Sicherungs-Kopie (best effort – darf das Hauptspeichern nicht stoeren)
+    try { localStorage.setItem(SK.BACKUP_KEY, json); } catch (_) { /* egal */ }
   } catch (e) {
     console.error('Sparkurs: Speichern fehlgeschlagen (Speicher voll?).', e);
-    alert('Speichern fehlgeschlagen. Eventuell ist der Browser-Speicher voll.');
+    if (SK.ui && SK.ui.toast) SK.ui.toast('Speichern fehlgeschlagen – Speicher voll?', true);
+    else alert('Speichern fehlgeschlagen. Eventuell ist der Browser-Speicher voll.');
   }
 };
 
@@ -122,6 +159,9 @@ SK.storage.exportJSON = function () {
    Dateiname enthaelt das heutige Datum, z.B. sparkurs-backup-2026-06-21.json
    --------------------------------------------------------------------- */
 SK.storage.downloadBackup = function () {
+  // Datum des Backups merken (fuer die Backup-Erinnerung auf "Heute")
+  SK.state.meta.lastBackupAt = SK.dateKey();
+  SK.storage.save();
   const text = SK.storage.exportJSON();
   const blob = new Blob([text], { type: 'application/json' });
   const url = URL.createObjectURL(blob);

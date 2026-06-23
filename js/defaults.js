@@ -32,6 +32,14 @@ SK.VERSION = 1;
    des Browsers. Aendere ihn nicht, sonst findet die App alte Daten nicht. */
 SK.STORAGE_KEY = 'sparkurs_v1';
 
+/* Zweiter Schluessel: eine identische Sicherungs-Kopie ("letzter guter Stand").
+   Wird bei jedem Speichern mitgeschrieben. Falls der Haupt-Schluessel je
+   beschaedigt ist, stellt die App daraus wieder her (siehe storage.js).
+   Ein dritter Schluessel bewahrt unleserliche Rohdaten auf, statt sie zu
+   ueberschreiben – so geht nie etwas unwiederbringlich verloren. */
+SK.BACKUP_KEY = 'sparkurs_v1_bak';
+SK.CORRUPT_KEY = 'sparkurs_v1_corrupt';
+
 /* ---------------------------------------------------------------------
    Hilfsfunktion: erzeugt eine eindeutige ID (z.B. fuer eine neue Ausgabe).
    Rein: nichts. Raus: ein kurzer, einmaliger Text wie "k7f3a9q2".
@@ -233,7 +241,8 @@ SK.defaultState = function () {
     meta: {
       erstellt: SK.dateKey(),  // Datum des ersten Starts
       lastOpen: SK.dateKey(),  // zuletzt geoeffnet (fuer Monatswechsel-Erkennung)
-      seedV2: true             // Marker: v2-Startdaten (Motorrad/Sparkonto/Listen) gesetzt
+      seedV2: true,            // Marker: v2-Startdaten (Motorrad/Sparkonto/Listen) gesetzt
+      lastBackupAt: ''         // Datum des letzten manuellen Backups (fuer die Erinnerung)
     }
   };
 };

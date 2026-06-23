@@ -22,6 +22,7 @@ SK.ui = {};
 SK.ui.verlaufFilter = 'alle';   // aktueller Filter im Verlauf-Tab
 SK.ui.debtArchiveOpen = false;  // ist das Schulden-Archiv aufgeklappt?
 SK.ui.debtExpanded = {};        // welche Schulden-Posten zeigen ihre Zahlungsliste? (id -> true)
+SK.ui._backupDismissed = false; // Backup-Erinnerung fuer diese Sitzung weggeklickt?
 
 /* ============ A) HELFER ============ */
 
@@ -181,6 +182,9 @@ SK.ui.renderHeute = function () {
     aboCard.classList.add('hidden');
   }
 
+  // Backup-Erinnerung
+  SK.ui.renderBackupHint();
+
   // Monatszahlen
   document.getElementById('hd-monat').textContent = SK.ui.fmt(c.spendMonat);
   document.getElementById('hd-rest').textContent = SK.ui.fmt(c.nochVerfuegbarMonat);
@@ -217,6 +221,26 @@ SK.ui.last7DaysSpend = function () {
     arr.push(s);
   }
   return arr;
+};
+
+/* Backup-Erinnerung auf "Heute": sanfter Hinweis, sobald es nennenswerte
+   Daten gibt und lange (oder noch nie) kein Backup gemacht wurde.
+   Verhindert kuenftigen Datenverlust, weil die Daten nur lokal liegen. */
+SK.ui.renderBackupHint = function () {
+  const card = document.getElementById('backup-card');
+  if (!card) return;
+  if (SK.ui._backupDismissed) { card.classList.add('hidden'); return; }
+  const n = SK.state.entries.length;
+  const last = SK.state.meta && SK.state.meta.lastBackupAt;
+  let daysSince = Infinity;
+  if (last) daysSince = Math.round((new Date(SK.dateKey() + 'T00:00:00') - new Date(last + 'T00:00:00')) / 86400000);
+  const show = n >= 4 && daysSince >= 30; // erst ab etwas Daten, dann monatlich
+  card.classList.toggle('hidden', !show);
+  if (show) {
+    document.getElementById('hd-backuptext').textContent = last
+      ? ('Letztes Backup vor ' + daysSince + ' Tagen. Deine Daten liegen nur auf diesem Gerät – sichere sie wieder.')
+      : 'Noch kein Backup gemacht. Deine Daten liegen nur auf diesem Gerät – sichere sie jetzt, damit nichts verloren geht.';
+  }
 };
 
 /* Wie viel wurde diesen Monat in EIN Ziel eingezahlt (fuer monatliche Toepfe). */
@@ -589,7 +613,14 @@ SK.ui.renderEinstellungen = function () {
   // Märkte
   document.getElementById('se-cryptocur').value = SK.state.settings.cryptoWaehrung || 'chf';
 
-  document.getElementById('se-version').textContent = '2.1';
+  document.getElementById('se-version').textContent = '2.2';
+
+  // Letztes Backup anzeigen (Erinnerung gegen Datenverlust)
+  const bi = document.getElementById('se-backupinfo');
+  if (bi) {
+    const last = SK.state.meta && SK.state.meta.lastBackupAt;
+    bi.textContent = last ? ('Letztes Backup: ' + SK.ui.dayLabel(last)) : 'Noch nie ein Backup gemacht.';
+  }
 
   document.getElementById('se-kategorien').innerHTML = SK.state.categories.map(function (c) {
     return '<div class="cat-edit"><span class="cat-edit-ico" style="color:' + c.color + '">' + SK.icon(c.icon) + '</span>'
@@ -747,7 +778,7 @@ SK.ui.renderListen = function () {
 SK.ui.FERIEN_LINKS = [
   { gruppe: 'In der Nähe (nutzt deinen Standort)', items: [
     { icon: 'pin',      label: 'Restaurants',       url: 'https://www.google.com/maps/search/?api=1&query=Restaurants+in+der+N%C3%A4he' },
-    { icon: 'landmark', label: 'Sehenswürdigkeiten', url: 'https://www.google.com/maps/search/?api=1&query=Sehensw%C3%BCrdigkeiten+in+der+N%C3%A4he' },
+    { icon: 'landmark', label: 'Sehenswertes', url: 'https://www.google.com/maps/search/?api=1&query=Sehensw%C3%BCrdigkeiten+in+der+N%C3%A4he' },
     { icon: 'cash',     label: 'Bankomat',          url: 'https://www.google.com/maps/search/?api=1&query=Bankomat+in+der+N%C3%A4he' }
   ]},
   { gruppe: 'Übersetzen', items: [

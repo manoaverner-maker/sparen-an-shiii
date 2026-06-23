@@ -104,6 +104,19 @@
         <div><div class="alert-title">Abo-Verlängerung steht an</div><div class="alert-text" id="hd-aboalert"></div></div>
       </div>
 
+      <!-- Backup-Erinnerung (sichtbar, wenn Daten da sind und lange kein Backup) -->
+      <div class="card alert backup-alert hidden" id="backup-card">
+        <div class="alert-icon" data-icon="download"></div>
+        <div class="backup-main">
+          <div class="alert-title">Sichere deine Daten</div>
+          <div class="alert-text" id="hd-backuptext">Deine Daten liegen nur auf diesem Gerät. Lade ab und zu ein Backup herunter, damit nie etwas verloren geht.</div>
+          <div class="backup-actions">
+            <button class="btn btn-accent btn-sm" data-act="backup-now"><span class="ic-pre" data-icon="download"></span>Jetzt sichern</button>
+            <button class="btn btn-ghost btn-sm" data-act="backup-later">Später</button>
+          </div>
+        </div>
+      </div>
+
       <!-- kleine Monatszahlen -->
       <div class="mini-grid">
         <div class="card mini"><div class="mini-label">Diesen Monat ausgegeben</div><div class="mini-val"><span id="hd-monat">0</span> CHF</div></div>
@@ -389,7 +402,8 @@
 
       <div class="card">
         <h2 class="section-head">Daten &amp; Backup</h2>
-        <p class="muted">Alle Daten liegen nur auf diesem Gerät. Mach ab und zu ein Backup.</p>
+        <p class="muted">Alle Daten liegen <strong>nur auf diesem Gerät</strong>. Das Handy kann sie bei Speichermangel oder langer Nichtnutzung von selbst löschen – darum <strong>regelmässig ein Backup</strong> herunterladen und sicher ablegen (z.B. in Dateien/iCloud).</p>
+        <p class="cap" id="se-backupinfo"></p>
         <button class="btn btn-ghost btn-block" id="se-export"><span class="ic-pre" data-icon="download"></span>Backup exportieren (JSON)</button>
         <label class="btn btn-ghost btn-block" for="se-importfile"><span class="ic-pre" data-icon="upload"></span>Backup importieren</label>
         <input type="file" id="se-importfile" accept="application/json,.json" hidden>

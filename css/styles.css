@@ -339,6 +339,9 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 .alert-icon .ic { width: 24px; height: 24px; }
 .alert-title { font-weight: 700; font-size: 0.95rem; }
 .alert-text { font-size: 0.85rem; color: var(--text-dim); }
+/* Backup-Erinnerung */
+.backup-alert .backup-main { flex: 1; min-width: 0; }
+.backup-actions { display: flex; gap: 8px; margin-top: 11px; flex-wrap: wrap; }
 
 /* ---- Sparziel-Mini ---- */
 .goal-mini-name { font-weight: 700; }
@@ -650,15 +653,19 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 /* Schnell-Links */
 .fe-links .ql-group .label { display: block; margin: 14px 0 9px; color: var(--text-dim); }
 .fe-links .ql-group:first-of-type .label { margin-top: 4px; }
-.fe-quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fe-quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: stretch; }
 .ql {
   display: flex; align-items: center; gap: 10px; padding: 13px 14px; border-radius: var(--radius-sm);
   background: var(--card-2); border: 1px solid transparent; color: var(--text); text-decoration: none;
   font-size: 0.9rem; font-weight: 600; box-shadow: var(--sh-1), inset 0 1px 0 rgba(255,255,255,0.03);
   transition: transform .12s cubic-bezier(.22,.61,.36,1);
+  /* min-width:0 -> Spalten bleiben gleich breit; lange Woerter dehnen die
+     Spalte NICHT, sondern brechen sauber um (sonst Darstellungsfehler). */
+  min-width: 0;
 }
 .ql:active { transform: scale(0.96); }
 .ql .ico { display: inline-flex; color: var(--text-dim); flex: none; }
 .ql .ico .ic { width: 20px; height: 20px; }
+.ql > span:last-child { min-width: 0; overflow-wrap: anywhere; line-height: 1.2; }
 
 @media (min-width: 600px) { .fe-quick-grid { grid-template-columns: 1fr 1fr 1fr; } }

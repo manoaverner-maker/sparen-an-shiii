@@ -745,6 +745,15 @@ SK.app.onClick = function (ev) {
       SK.app.refresh(); SK.ui.toast('Liste gelöscht');
     }
 
+  /* ---- Backup-Erinnerung ---- */
+  } else if (a === 'backup-now') {
+    SK.storage.downloadBackup();
+    SK.ui.toast('Backup heruntergeladen');
+    SK.ui.renderHeute();
+  } else if (a === 'backup-later') {
+    SK.ui._backupDismissed = true;
+    const bc = document.getElementById('backup-card'); if (bc) bc.classList.add('hidden');
+
   /* ---- Ferienmodus ---- */
   } else if (a === 'ferien-start') {
     SK.app.startFerien();
