@@ -56,6 +56,31 @@ SK.MONEY_IDEAS = [
   ]}
 ];
 
+/* Recherchierte Spar-Tipps fuer den Alltag (Schweiz, 2026) – werden im
+   Geld-Ideen-Tab als eigener Abschnitt "Im Alltag sparen" angezeigt. */
+SK.SAVING_IDEAS = [
+  { gruppe: 'Im Alltag sparen', items: [
+    { t: 'Günstiger einkaufen', d: 'Aldi/Lidl/Denner & Eigenmarken statt Markenprodukte; „Too Good To Go" für vergünstigte Resten. Schnell 100–200 CHF/Monat ohne echten Verzicht.' },
+    { t: 'Selber kochen & Lunch mitnehmen', d: 'Auswärts essen ist der grösste Geld-Frisser. Sonntag vorkochen (Meal-Prep) spart 5–10 CHF/Tag – im Monat 150–250.' },
+    { t: 'Kaffee & Süssgetränke', d: 'Kaffee selber machen statt 4.50 unterwegs (≈100/Monat). Wasser/Sirup statt Energy & Softdrinks.' },
+    { t: 'ÖV clever', d: 'Halbtax + „Gleis 7" (gratis ÖV ab 19 Uhr für unter 25) statt Einzeltickets; kurze Strecken mit dem Velo.' },
+    { t: 'Handy & Internet senken', d: 'Günstig-Anbieter (Yallo, Wingo, Digital Republic, Coop Mobile) statt Premium – oft 20–40 CHF/Monat weniger fürs Gleiche.' },
+    { t: 'Second-Hand & reparieren', d: 'Tutti, Ricardo, Brockenhaus, Marketplace für Kleider/Möbel/Technik. Reparieren statt neu kaufen.' }
+  ]},
+  { gruppe: 'Bessere Gewohnheiten', items: [
+    { t: '24-Stunden-Regel', d: 'Alles über ~50 CHF: einen Tag drüber schlafen. Die meisten Impulskäufe erledigen sich von selbst – nutze die Wunschliste.' },
+    { t: 'Wochen-Bargeld', d: 'Feste Wochensumme abheben und nur die ausgeben – macht das Tagesbudget greifbar und bremst Karten-Impulse.' },
+    { t: 'Cumulus / Supercard & Cashback', d: 'Punkte & Rabatte mitnehmen – aber nur für Sachen, die du sowieso kaufst (kein Kauf wegen Rabatt).' },
+    { t: 'Abos halbjährlich prüfen', d: 'Im Abo-Radar alles durchgehen: Streaming, Gym, Apps. Was du seltener als 1×/Woche nutzt → kündigen.' }
+  ]},
+  { gruppe: 'Grosse Hebel', items: [
+    { t: 'Zahl dich zuerst', d: 'Sparrate sofort am Lohntag wegbuchen (machst du mit den 250ern). Was weg ist, gibst du nicht aus.' },
+    { t: 'Notgroschen zuerst', d: '3–6 Monatsausgaben auf ein separates Konto, bevor du grösser investierst. Schützt vor Schulden bei Pannen.' },
+    { t: 'Fixkosten senken', d: 'Grösster Hebel: Krankenkasse jährlich via Prämienrechner vergleichen (priminfo.admin.ch), Franchise & Modell prüfen – oft 50–150 CHF/Monat.' },
+    { t: 'Schulden/Bussen vor Sparen', d: 'Offene Schulden & Bussen zuerst abbauen – kostet sonst mehr, als Sparen oder Investieren bringt.' }
+  ]}
+];
+
 /* Zahl als CHF-Text mit Schweizer Tausender-Trennzeichen (').
    fmt(1234.5)      -> "1'235"
    fmt(1234.5, 2)   -> "1'234.50"  */
@@ -686,7 +711,7 @@ SK.ui.renderEinstellungen = function () {
   // Märkte
   document.getElementById('se-cryptocur').value = SK.state.settings.cryptoWaehrung || 'chf';
 
-  document.getElementById('se-version').textContent = '2.7';
+  document.getElementById('se-version').textContent = '2.8';
 
   // Letztes Backup anzeigen (Erinnerung gegen Datenverlust)
   const bi = document.getElementById('se-backupinfo');
@@ -787,15 +812,22 @@ SK.ui.renderCoach = function () {
   }
 };
 
-/* ---- GELD-IDEEN ---- */
-SK.ui.renderIdeen = function () {
-  // statische, recherchierte Liste
-  document.getElementById('id-static').innerHTML = SK.MONEY_IDEAS.map(function (cat) {
+/* Baut eine Liste von Ideen-Gruppen ([{gruppe, items:[{t,d}]}]) als HTML. */
+SK.ui._ideaGroups = function (arr) {
+  return arr.map(function (cat) {
     return '<div class="idea-cat"><div class="label">' + SK.ui.esc(cat.gruppe) + '</div>'
       + cat.items.map(function (it) {
         return '<div class="idea"><div class="idea-title">' + SK.ui.esc(it.t) + '</div><div class="idea-desc">' + SK.ui.esc(it.d) + '</div></div>';
       }).join('') + '</div>';
   }).join('');
+};
+
+/* ---- GELD-IDEEN ---- */
+SK.ui.renderIdeen = function () {
+  // statische, recherchierte Listen (verdienen + im Alltag sparen)
+  document.getElementById('id-static').innerHTML = SK.ui._ideaGroups(SK.MONEY_IDEAS);
+  const sav = document.getElementById('id-saving');
+  if (sav) sav.innerHTML = SK.ui._ideaGroups(SK.SAVING_IDEAS);
 
   // KI-Idee des Tages
   const body = document.getElementById('id-ai-body');
