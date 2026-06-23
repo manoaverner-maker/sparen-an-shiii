@@ -176,7 +176,12 @@ SK.budget.dayInfo = function (state, d) {
   // Optionale Schulden-Rate: wie die Sparrate VORAB reservieren (separater Topf).
   // Die einzelnen Schulden-Teilzahlungen selbst zaehlen NICHT ins Tagesbudget.
   const schuldenRate = SK.budget.schuldenRate(state);
-  const verfuegbar = state.settings.lohn - SK.budget.fixkostenEffektiv(state) - sparrate - schuldenRate;
+  // Verfuegbar diesen Monat: entweder das selbst gesetzte feste Alltagsbudget
+  // (wenn > 0), sonst automatisch aus Lohn - Fixkosten - Sparrate - Schulden-Rate.
+  const manuell = state.settings.alltagsbudget;
+  const verfuegbar = (manuell && manuell > 0)
+    ? manuell
+    : (state.settings.lohn - SK.budget.fixkostenEffektiv(state) - sparrate - schuldenRate);
 
   // (4) abgeflossen vor dem betrachteten Tag, und (heute) am Tag selbst
   let abgeflossenVorher = 0;
@@ -370,6 +375,20 @@ SK.budget.byCategory = function (state, d) {
 SK.budget.avgPerDay = function (state, d) {
   const tag = d.getDate();
   return tag > 0 ? SK.budget.spendMonth(state, d) / tag : 0;
+};
+
+/* Echte Ausgaben PRO TAG eines Monats (fuer den Kalender).
+   Raus: Array, Index 1..TageImMonat = Summe der Ausgaben an diesem Tag
+   (ohne Spar-Buchungen). Index 0 bleibt ungenutzt. */
+SK.budget.daySpends = function (state, d) {
+  const n = SK.budget.daysInMonth(d);
+  const proTag = new Array(n + 1).fill(0);
+  for (const e of SK.budget.monthEntries(state, d)) {
+    if (e.typ === 'sparen') continue;
+    const tag = parseInt(e.datum.slice(8, 10), 10);
+    if (tag >= 1 && tag <= n) proTag[tag] += e.betrag;
+  }
+  return proTag;
 };
 
 /* =====================================================================

@@ -255,6 +255,7 @@ body.no-fab .fab { display: none; }
 /* Eingabefelder */
 .field { display: block; margin-bottom: 14px; }
 .field span { display: block; font-size: 0.85rem; color: var(--text-dim); margin-bottom: 6px; }
+.field span small { display: block; font-weight: 400; font-size: 0.76rem; color: var(--text-3); margin-top: 3px; }
 input[type="number"], input[type="text"], input[type="date"], select {
   width: 100%; padding: 12px 14px; border-radius: 12px;
   background: var(--card-2); border: 1px solid var(--border); color: var(--text);
@@ -430,6 +431,35 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 .chart-legend .dot, .chart-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 6px; vertical-align: middle; }
 .legend-row { display: flex; justify-content: space-between; width: 100%; }
 .legend-row b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* ---- Kalender (Ausgaben-Heatmap) ---- */
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cal-title { font-weight: 700; font-size: 1rem; text-transform: capitalize; }
+.cal-nav { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--card-2); color: var(--text); font-size: 1.2rem; line-height: 1; cursor: pointer;
+  transition: transform .12s, background .2s; }
+.cal-nav:active { transform: scale(.92); }
+.cal-nav[disabled] { opacity: .35; cursor: default; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.cal-dow { margin-bottom: 5px; }
+.cal-dow-c { text-align: center; font-size: 0.7rem; color: var(--text-3); font-weight: 600; }
+.cal-cell { aspect-ratio: 1 / 1; border: none; border-radius: 9px; background: var(--card-2);
+  color: var(--text-dim); font-size: 0.8rem; font-weight: 600; font-variant-numeric: tabular-nums;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+  font-family: inherit; transition: transform .1s; }
+.cal-cell:active { transform: scale(.9); }
+.cal-cell.empty { background: none; pointer-events: none; }
+.cal-cell.g2 { background: rgba(16,200,140,0.55); color: #04211a; }
+.cal-cell.g1 { background: rgba(16,200,140,0.22); color: var(--text); }
+.cal-cell.r1 { background: rgba(255,99,99,0.30); color: var(--text); }
+.cal-cell.r2 { background: rgba(214,55,55,0.65); color: #fff; }
+.cal-cell.today { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cal-legend { display: flex; flex-wrap: wrap; gap: 7px 14px; justify-content: center; margin-top: 14px; font-size: 0.72rem; color: var(--text-dim); }
+.cal-sw { width: 11px; height: 11px; border-radius: 3px; display: inline-block; margin-right: 5px; vertical-align: -1px; }
+.cal-sw.g2 { background: rgba(16,200,140,0.55); }
+.cal-sw.g1 { background: rgba(16,200,140,0.22); }
+.cal-sw.r1 { background: rgba(255,99,99,0.30); }
+.cal-sw.r2 { background: rgba(214,55,55,0.65); }
 
 /* ---- Kategorie-Verwaltung (Einstellungen) ---- */
 .cat-edit-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }

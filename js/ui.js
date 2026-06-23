@@ -25,6 +25,7 @@ SK.ui.debtExpanded = {};        // welche Schulden-Posten zeigen ihre Zahlungsli
 SK.ui._backupDismissed = false; // Backup-Erinnerung fuer diese Sitzung weggeklickt?
 SK.ui.ferienArchOpen = false;   // Archiv "Frühere Reisen" aufgeklappt?
 SK.ui.ferienArchExpanded = {};  // welche Archiv-Reise zeigt ihre Detail-Aufschluesselung?
+SK.ui.calOffset = 0;            // angezeigter Kalender-Monat: 0 = aktuell, -1 = letzter …
 
 /* ============ A) HELFER ============ */
 
@@ -554,9 +555,67 @@ SK.ui._debtCard = function (d, archived) {
   + '</div>';
 };
 
+/* ---- KALENDER (Ausgaben-Heatmap) ----
+   Faerbt jeden Tag je nach Ausgaben im Verhaeltnis zum Tages-Soll:
+     dunkelgrün = sehr sparsam, hellgrün = im Plan, hellrot = drüber,
+     dunkelrot = weit drüber. Zukuenftige Tage bleiben neutral. */
+SK.ui.calStatus = function (spend, allow, isFuture) {
+  if (isFuture) return 'neutral';
+  const r = allow > 0 ? spend / allow : (spend > 0 ? 2 : 0);
+  if (r <= 0.5) return 'g2';
+  if (r <= 1.0) return 'g1';
+  if (r <= 1.5) return 'r1';
+  return 'r2';
+};
+
+SK.ui.renderCalendar = function () {
+  const wrap = document.getElementById('st-calendar');
+  if (!wrap) return;
+  const base = new Date();
+  const d = new Date(base.getFullYear(), base.getMonth() + SK.ui.calOffset, 1);
+  const n = SK.budget.daysInMonth(d);
+  const spends = SK.budget.daySpends(SK.state, d);
+  const allow = SK.budget.dayInfo(SK.state, d).verfuegbar / n; // gleichmaessiges Tages-Soll
+  const istAktuell = (d.getFullYear() === base.getFullYear() && d.getMonth() === base.getMonth());
+  const heuteTag = base.getDate();
+
+  let firstDow = new Date(d.getFullYear(), d.getMonth(), 1).getDay(); // So=0
+  firstDow = (firstDow + 6) % 7; // Woche beginnt Montag
+
+  let html = '<div class="cal-head">'
+    + '<button class="cal-nav" data-act="cal-prev" aria-label="Vorheriger Monat">‹</button>'
+    + '<div class="cal-title">' + MONATE[d.getMonth()] + ' ' + d.getFullYear() + '</div>'
+    + '<button class="cal-nav" data-act="cal-next"' + (SK.ui.calOffset >= 0 ? ' disabled' : '') + ' aria-label="Nächster Monat">›</button>'
+  + '</div>';
+  html += '<div class="cal-grid cal-dow">' + ['Mo','Di','Mi','Do','Fr','Sa','So'].map(function (w) { return '<div class="cal-dow-c">' + w + '</div>'; }).join('') + '</div>';
+  html += '<div class="cal-grid">';
+  for (let i = 0; i < firstDow; i++) html += '<div class="cal-cell empty"></div>';
+  for (let t = 1; t <= n; t++) {
+    const isFuture = istAktuell && t > heuteTag;
+    const cls = SK.ui.calStatus(spends[t], allow, isFuture);
+    const isToday = istAktuell && t === heuteTag;
+    html += '<button class="cal-cell ' + cls + (isToday ? ' today' : '') + '" data-act="cal-day" data-day="' + t + '">' + t + '</button>';
+  }
+  html += '</div>';
+  html += '<div class="cal-legend">'
+    + '<span><i class="cal-sw g2"></i>sehr sparsam</span><span><i class="cal-sw g1"></i>im Plan</span>'
+    + '<span><i class="cal-sw r1"></i>drüber</span><span><i class="cal-sw r2"></i>weit drüber</span></div>';
+  wrap.innerHTML = html;
+};
+
+/* Tipp auf einen Kalendertag -> kurze Info, wie viel an dem Tag ausgegeben wurde. */
+SK.ui.showCalDay = function (t) {
+  const base = new Date();
+  const d = new Date(base.getFullYear(), base.getMonth() + SK.ui.calOffset, 1);
+  const spends = SK.budget.daySpends(SK.state, d);
+  const s = spends[t] || 0;
+  SK.ui.toast(t + '. ' + MONATE[d.getMonth()] + ': ' + SK.ui.fmt(s, 2) + ' CHF ausgegeben');
+};
+
 /* ---- STATISTIK ---- */
 SK.ui.renderStatistik = function () {
   const heute = new Date();
+  SK.ui.renderCalendar();
   // Linienchart
   SK.charts.lineChart(document.getElementById('st-line'), SK.budget.monthSeries(SK.state, heute));
   // Tortendiagramm + Legende
@@ -596,6 +655,7 @@ SK.ui.renderStatistik = function () {
 SK.ui.renderEinstellungen = function () {
   document.getElementById('se-lohn').value = SK.state.settings.lohn;
   document.getElementById('se-fixkosten').value = SK.state.settings.fixkosten;
+  document.getElementById('se-alltag').value = SK.state.settings.alltagsbudget || '';
   document.getElementById('se-aboswitch').checked = SK.state.settings.abosInFixkosten;
   // Schulden-Rate
   const schuldenAktiv = SK.state.settings.schuldenRateAktiv;
@@ -615,7 +675,7 @@ SK.ui.renderEinstellungen = function () {
   // Märkte
   document.getElementById('se-cryptocur').value = SK.state.settings.cryptoWaehrung || 'chf';
 
-  document.getElementById('se-version').textContent = '2.5';
+  document.getElementById('se-version').textContent = '2.6';
 
   // Letztes Backup anzeigen (Erinnerung gegen Datenverlust)
   const bi = document.getElementById('se-backupinfo');

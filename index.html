@@ -234,6 +234,12 @@
     <section class="view" id="view-statistik">
       <h1 class="view-title">Statistik</h1>
 
+      <!-- Kalender: jeder Tag eingefaerbt je nach Ausgaben (grün = sparsam, rot = drüber) -->
+      <div class="card">
+        <div class="section-head"><h2>Kalender</h2></div>
+        <div id="st-calendar"></div>
+      </div>
+
       <div class="stat-grid">
         <div class="card">
           <div class="section-head"><h2>Monatsverlauf</h2></div>
@@ -358,6 +364,7 @@
         <h2 class="section-head">Geld</h2>
         <label class="field"><span>Monatslohn netto (CHF)</span><input type="number" id="se-lohn" inputmode="decimal" min="0" step="50"></label>
         <label class="field"><span>Fixkosten pro Monat (CHF)</span><input type="number" id="se-fixkosten" inputmode="decimal" min="0" step="10"></label>
+        <label class="field"><span>Festes Monatsbudget für den Alltag (CHF, optional)<small>Wieviel du pro Monat für den täglichen Gebrauch ausgeben willst. Leer/0 = automatisch aus Lohn − Fixkosten − Sparen berechnen.</small></span><input type="number" id="se-alltag" inputmode="decimal" min="0" step="10" placeholder="z.B. 400"></label>
         <label class="switch-row"><span>Abo-Summe zu den Fixkosten dazurechnen<small>Nur einschalten, wenn deine Fixkosten die Abos noch NICHT enthalten.</small></span>
           <input type="checkbox" id="se-aboswitch" class="switch"></label>
       </div>

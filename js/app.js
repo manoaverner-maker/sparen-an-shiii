@@ -623,6 +623,9 @@ SK.app.bindEvents = function () {
   document.getElementById('se-fixkosten').addEventListener('change', function (e) {
     SK.state.settings.fixkosten = Math.max(0, parseFloat(e.target.value) || 0); SK.app.refresh();
   });
+  document.getElementById('se-alltag').addEventListener('change', function (e) {
+    SK.state.settings.alltagsbudget = Math.max(0, parseFloat(e.target.value) || 0); SK.app.refresh();
+  });
   document.getElementById('se-aboswitch').addEventListener('change', function (e) {
     SK.state.settings.abosInFixkosten = e.target.checked; SK.app.refresh();
   });
@@ -785,6 +788,14 @@ SK.app.onClick = function (ev) {
       SK.state.ferienArchiv = (SK.state.ferienArchiv || []).filter(function (x) { return x.id !== act.dataset.trip; });
       SK.app.refresh(); SK.ui.toast('Reise gelöscht');
     }
+
+  /* ---- Kalender (Statistik) ---- */
+  } else if (a === 'cal-prev') {
+    SK.ui.calOffset -= 1; SK.ui.renderCalendar();
+  } else if (a === 'cal-next') {
+    if (SK.ui.calOffset < 0) { SK.ui.calOffset += 1; SK.ui.renderCalendar(); }
+  } else if (a === 'cal-day') {
+    SK.ui.showCalDay(parseInt(act.dataset.day, 10));
   }
 };
 

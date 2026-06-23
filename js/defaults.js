@@ -96,6 +96,12 @@ SK.defaultState = function () {
     settings: {
       lohn: 1600,              // Monatslohn netto in CHF
       fixkosten: 580,          // Fixkosten pro Monat in CHF (Miete, etc.)
+      alltagsbudget: 0,        // Optional: FESTES Monatsbudget fuer den Alltag (CHF).
+                               //   > 0  -> dieser Betrag wird direkt als "verfuegbar pro
+                               //           Monat" genommen (du sagst selbst, wieviel du
+                               //           fuer den taeglichen Gebrauch ausgeben willst).
+                               //   0    -> automatisch aus Lohn - Fixkosten - Sparrate
+                               //           (- Schulden-Rate) berechnen (Standard).
       abosInFixkosten: false,  // Sollen die Abos automatisch zu den Fixkosten dazugezaehlt werden?
                                //   AUS lassen, wenn deine 580 Fixkosten die Abos schon enthalten
                                //   (sonst werden sie doppelt gerechnet).
