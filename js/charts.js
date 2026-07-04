@@ -48,10 +48,10 @@ SK.charts.lineChart = function (el, serie) {
   const innerW = W - padL - padR;
   const innerH = H - padT - padB;
 
-  const accent = cssVar('--accent', '#19e3a6');
-  const gold = cssVar('--gold', '#f4c14b');
-  const grid = 'rgba(255,255,255,0.07)';
-  const dim = cssVar('--text-dim', '#8b98a9');
+  const accent = cssVar('--accent', '#059669');
+  const gold = cssVar('--gold', '#d97706');
+  const grid = 'rgba(17,24,39,0.08)';
+  const dim = cssVar('--text-dim', '#6b7280');
 
   const n = serie.tageImMonat;
   // groesster Wert auf der y-Achse (Soll-Endwert oder hoechster Ist-Wert)
@@ -96,7 +96,7 @@ SK.charts.lineChart = function (el, serie) {
     svg += '<polygon points="' + area + '" fill="url(#istfill)"/>';
     svg += '<polyline points="' + istLine.trim() + '" fill="none" stroke="' + accent + '" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>';
     // Punkt fuer heute
-    svg += '<circle cx="' + x(lastTag) + '" cy="' + y(lastVal) + '" r="3.5" fill="' + accent + '" stroke="#0c151d" stroke-width="1.5"/>';
+    svg += '<circle cx="' + x(lastTag) + '" cy="' + y(lastVal) + '" r="3.5" fill="' + accent + '" stroke="#ffffff" stroke-width="1.5"/>';
   }
 
   // x-Beschriftung: Tag 1, Mitte, letzter Tag
@@ -132,7 +132,7 @@ SK.charts.spark = function (values, opts) {
   }
   line = line.trim();
   const up = values[n - 1] >= values[0];
-  const color = opts.color || (up ? cssVar('--accent', '#19e3a6') : cssVar('--red', '#ff5d6c'));
+  const color = opts.color || (up ? cssVar('--accent', '#059669') : cssVar('--red', '#dc2626'));
   const id = 'sp' + Math.round(min * 1000 % 100000) + n;
   const area = line + ' ' + w + ',' + h + ' 0,' + h;
   return '<svg class="spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" aria-hidden="true">'
@@ -163,15 +163,15 @@ SK.charts.donut = function (el, data) {
 
   if (total <= 0) {
     // Noch keine Ausgaben: nur ein leerer Ring
-    svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="' + stroke + '"/>';
-    svg += '<text x="' + cx + '" y="' + (cy + 4) + '" text-anchor="middle" font-size="12" fill="' + cssVar('--text-dim', '#8b98a9') + '">noch leer</text>';
+    svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="rgba(17,24,39,0.08)" stroke-width="' + stroke + '"/>';
+    svg += '<text x="' + cx + '" y="' + (cy + 4) + '" text-anchor="middle" font-size="12" fill="' + cssVar('--text-dim', '#6b7280') + '">noch leer</text>';
     svg += '</svg>';
     el.innerHTML = svg;
     return;
   }
 
   // Hintergrund-Ring
-  svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="' + stroke + '"/>';
+  svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="rgba(17,24,39,0.06)" stroke-width="' + stroke + '"/>';
   // Segmente: jedes als Teil-Kreis mit stroke-dasharray, gedreht starten oben (-90 Grad)
   let offset = 0; // bereits gezeichneter Anteil (0..1)
   for (const d of data) {
@@ -184,8 +184,8 @@ SK.charts.donut = function (el, data) {
     offset += anteil;
   }
   // Mitte: Gesamtsumme
-  svg += '<text x="' + cx + '" y="' + (cy - 2) + '" text-anchor="middle" font-size="20" font-weight="700" fill="' + cssVar('--text', '#e6edf3') + '">' + Math.round(total) + '</text>';
-  svg += '<text x="' + cx + '" y="' + (cy + 15) + '" text-anchor="middle" font-size="10" fill="' + cssVar('--text-dim', '#8b98a9') + '">CHF Monat</text>';
+  svg += '<text x="' + cx + '" y="' + (cy - 2) + '" text-anchor="middle" font-size="20" font-weight="700" fill="' + cssVar('--text', '#111827') + '">' + Math.round(total) + '</text>';
+  svg += '<text x="' + cx + '" y="' + (cy + 15) + '" text-anchor="middle" font-size="10" fill="' + cssVar('--text-dim', '#6b7280') + '">CHF Monat</text>';
   svg += '</svg>';
   el.innerHTML = svg;
 };

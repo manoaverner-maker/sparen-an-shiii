@@ -81,7 +81,7 @@ SK.DEFAULT_CATEGORIES = [
    verschiebst. Sie taucht NICHT in der normalen Kategorie-Auswahl auf und
    wird in der Ausgaben-Statistik (Tortendiagramm) ausgeblendet, weil
    Sparen ja keine "Ausgabe" im klassischen Sinn ist. */
-SK.SAVING_CATEGORY = { id: 'sparen', name: 'Sparen', color: '#f4c14b', icon: 'coins' };
+SK.SAVING_CATEGORY = { id: 'sparen', name: 'Sparen', color: '#d97706', icon: 'coins' };
 
 /* ---------------------------------------------------------------------
    Der komplette Anfangszustand der App.

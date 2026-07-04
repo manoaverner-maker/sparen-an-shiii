@@ -1,6 +1,6 @@
-# Sparen an Shiii
+# Money Manager
 
-**Deine persönliche Budget-App.** Sie beantwortet jeden Tag die eine wichtige Frage:
+**Deine persönliche Budget-App** (früher „Sparen an Shiii"). Sie beantwortet jeden Tag die eine wichtige Frage:
 
 > **Wie viel kann ich heute noch ausgeben, ohne mein Sparziel und meine Fixkosten zu gefährden?**
 
@@ -204,19 +204,19 @@ Tagesbudget führst, ohne dass es dein normales Monatsbudget verfälscht.
 
 ## Logo & Design
 
-- **Logo:** ein eigenes Marken-**„S"** im Fintech-Letter-Mark-Stil (Variante
-  „Ribbon"): aus **zwei sich überlappenden Türkis-Bändern** aufgebaut, mit einer
-  dunkleren Mischzone in der Mitte und einer einzelnen spitzen Akzent-Ecke
-  oben-rechts (aufsteigende Bewegung = Wachstum). Liegt als sauberes,
-  verlustfrei skalierbares SVG vor (`assets/logo.svg`, Farben oben im Kommentar
-  änderbar). Das App-Icon ist dieselbe Form auf hellem, abgerundetem Quadrat
-  (iOS-Stil) – die PNGs in allen nötigen Grössen erzeugst du aus `assets/_icon.html`.
-- **Design:** ruhiger und edler („belohnend", Vorbild Revolut) – **randlose Karten**
-  mit Tiefe nur durch minimale Helligkeitsunterschiede und sehr weiche Schatten,
-  ein dezenter vertikaler Hintergrund-Verlauf, mehr Weissraum, die Akzentfarbe
-  **sparsam** (nur das wichtigste Element pro Screen ist farbig). Tipp-Flächen
-  sinken beim Drücken sanft ein, Zahlen zählen weich hoch, und wo das Gerät es
-  unterstützt (z.B. Android), gibt es ein leichtes **haptisches** Feedback.
+- **Logo:** ein eigenes Marken-**„MM"** (Money Manager) im Fintech-Letter-Mark-Stil:
+  zwei geometrische M mit runden Ecken – das linke in **Anthrazit**, das rechte im
+  ruhigen **Grün** (der eine Akzent der App). Die Zickzack-Form liest sich zugleich
+  wie eine Chart-Linie. Sauberes, verlustfrei skalierbares SVG (`assets/logo.svg`,
+  Farben oben im Kommentar änderbar). Das App-Icon ist dieselbe Form auf weissem,
+  abgerundetem Quadrat (iOS-Stil) – die PNGs erzeugst du aus `assets/_icon.html`.
+- **Design (hell & clean, Vorbild Revolut):** heller, ruhiger Hintergrund,
+  **weisse randlose Karten** mit sehr weichen Schatten, fast schwarze Zahlen und
+  **ein** ruhiges Grün als Akzent (Knöpfe, Balken, aktive Tabs). Keine Verläufe,
+  kein Glow, keine Deko-Effekte – Farbe erscheint nur, wo sie etwas bedeutet
+  (Ampel-Balken, Warnungen). Tipp-Flächen sinken beim Drücken sanft ein, Zahlen
+  zählen weich hoch, und wo das Gerät es unterstützt, gibt es ein leichtes
+  **haptisches** Feedback.
 
 ## Märkte (Krypto-Kurse)
 
@@ -280,4 +280,4 @@ oder zur Sicherheit:
 
 ---
 
-*Sparen an Shiii · Manoa Verner · 2026 · läuft offline, ohne Server und ohne Konto.*
+*Money Manager · Manoa Verner · 2026 · läuft offline, ohne Server und ohne Konto.*

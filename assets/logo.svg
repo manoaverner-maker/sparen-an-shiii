@@ -1,43 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  logo.svg  ·  Sparkurs Marken-"S" (Variante Ribbon)
+  logo.svg  ·  Money-Manager Marken-"MM" (Revolut-Stil, hell & clean)
   ==================================================================
-  Das "S" ist NICHT als eine durchgezogene Linie gezeichnet, sondern
-  aus zwei sich ueberlappenden, runden Baendern aufgebaut:
-
-    BAND OBEN  (#sk-top)  = Akzent-Spitze oben-rechts -> Oberkante
-                            -> linke Flanke -> Mitte
-    BAND UNTEN (#sk-bot)  = Mitte -> rechte Flanke -> Unterkante
-                            -> unten-links
-    MISCHZONE  (#sk-blend)= dunklerer Fleck dort, wo sich die beiden
-                            Baender in der Mitte ueberlagern (Tiefe)
-    SPITZE     (Dreieck)  = die eine spitze Akzent-Ecke oben-rechts,
-                            deutet aufsteigende Bewegung an (Wachstum)
-
-  FARBEN aendern: oben heller (#4ff2d6 -> #12c994), unten tiefer
-  (#15d09c -> #08a06f), Mischzone #0a8a66. Transparenter Hintergrund,
-  ViewBox 0..64 -> in jeder Groesse gestochen scharf.
+  Zwei geometrische "M" nebeneinander, flach und ruhig:
+    M LINKS  = Anthrazit (#1f2937)  -> serioes, "Bank"
+    M RECHTS = ruhiges Gruen (#059669) -> Geld/Wachstum (der eine Akzent)
+  Die Zickzack-Form liest sich zugleich wie eine Chart-Linie.
+  Runde Ecken (stroke-linecap/join round), kein Verlauf, kein Glow.
+  FARBEN aendern: einfach die zwei stroke-Werte unten anpassen.
+  Transparenter Hintergrund, ViewBox 0..64 -> verlustfrei skalierbar.
 -->
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sparen an Shiii">
-  <defs>
-    <!-- oberes Band: helleres Tuerkis oben -> tieferes unten -->
-    <linearGradient id="sk-top" x1="20" y1="10" x2="40" y2="38" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#4ff2d6"/><stop offset="1" stop-color="#12c994"/>
-    </linearGradient>
-    <!-- unteres Band: etwas tieferes Tuerkis-Gruen -->
-    <linearGradient id="sk-bot" x1="22" y1="30" x2="40" y2="54" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#15d09c"/><stop offset="1" stop-color="#08a06f"/>
-    </linearGradient>
-  </defs>
-
-  <!-- BAND UNTEN (zuerst, liegt hinten) -->
-  <path d="M31 31.5 L 38 33.5 C 48 37.5, 47.5 47, 38.5 50 C 31 52.5, 20.5 51.5, 17 45"
-        fill="none" stroke="url(#sk-bot)" stroke-width="12.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- BAND OBEN (darueber) -->
-  <path d="M45 18 C 43 12, 32 11, 25 14 C 16.5 17.5, 16 27, 26 30.5 L 34 32.5"
-        fill="none" stroke="url(#sk-top)" stroke-width="12.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- MISCHZONE (dunkler dort, wo sich die Baender ueberlappen) -->
-  <rect x="27" y="27.5" width="11.5" height="9.5" rx="4.5" fill="#0a8a66" transform="rotate(22 32.5 32.5)"/>
-  <!-- SPITZE Akzent-Ecke oben-rechts (Wachstum) -->
-  <path d="M43.5 22 L49.5 10.5 L54 17 Z" fill="url(#sk-top)"/>
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Money Manager">
+  <!-- M links (Anthrazit) -->
+  <polyline points="10 43 10 21 20 36.5 30 21 30 43"
+            stroke="#1f2937" stroke-width="6" fill="none"
+            stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- M rechts (Gruen = Akzent) -->
+  <polyline points="36 43 36 21 46 36.5 56 21 56 43"
+            stroke="#059669" stroke-width="6" fill="none"
+            stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

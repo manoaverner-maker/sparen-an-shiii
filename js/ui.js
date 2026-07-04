@@ -234,8 +234,11 @@ SK.ui.renderHeute = function () {
   // Smart-Analyse (oben, max 3 Hinweise)
   SK.ui.renderInsights(document.getElementById('hd-insights'), 3);
 
-  // Hero-Sparkline: Ausgaben der letzten 7 Tage (kumuliert -> Trend)
-  document.getElementById('hd-spark').innerHTML = SK.charts.spark(SK.ui.last7DaysSpend(), { w: 120, h: 30 });
+  // Hero-Sparkline: Ausgaben der letzten 7 Tage – nur zeigen, wenn es
+  // ueberhaupt Ausgaben gab (sonst wirkt die flache Linie wie ein Strich).
+  const spark7 = SK.ui.last7DaysSpend();
+  document.getElementById('hd-spark').innerHTML = spark7.some(function (v) { return v > 0; })
+    ? SK.charts.spark(spark7, { w: 120, h: 30 }) : '';
 
   // ETH-Mini
   SK.ui.renderEthMini();
@@ -330,7 +333,7 @@ SK.ui._sortEntries = function (a, b) {
 SK.ui._entryRow = function (e) {
   const istSparen = e.typ === 'sparen';
   const istEinnahme = e.typ === 'einnahme';
-  const cat = istEinnahme ? { name: 'Einnahme', color: '#19e3a6', icon: 'coins' } : SK.ui.cat(istSparen ? 'sparen' : e.kategorie);
+  const cat = istEinnahme ? { name: 'Einnahme', color: '#059669', icon: 'coins' } : SK.ui.cat(istSparen ? 'sparen' : e.kategorie);
   const notiz = e.notiz ? e.notiz : (istSparen ? 'ins Sparziel' : (istEinnahme ? 'Geld hinzugefügt' : cat.name));
   const plus = istSparen || istEinnahme;
   const amtCls = istEinnahme ? ' income' : (istSparen ? ' saving' : '');
@@ -672,7 +675,7 @@ SK.ui.renderStatistik = function () {
   document.getElementById('st-avgweek').textContent = SK.ui.fmt(avgDay * 7);
   document.getElementById('st-hoch').textContent = SK.ui.fmt(c.hochrechnung);
   const hoch = document.getElementById('hoch-card');
-  hoch.style.borderColor = c.hochrechnungStatus === 'gut' ? 'rgba(34,211,154,0.45)' : 'rgba(255,93,108,0.45)';
+  hoch.style.borderColor = c.hochrechnungStatus === 'gut' ? 'rgba(5,150,105,0.35)' : 'rgba(220,38,38,0.30)';
   document.getElementById('st-hoch-foot').textContent = c.hochrechnungStatus === 'gut'
     ? 'im Plan (≤ ' + SK.ui.fmt(c.verfuegbarMonat) + ')'
     : 'über dem Budget von ' + SK.ui.fmt(c.verfuegbarMonat);
@@ -714,7 +717,7 @@ SK.ui.renderEinstellungen = function () {
   // Märkte
   document.getElementById('se-cryptocur').value = SK.state.settings.cryptoWaehrung || 'chf';
 
-  document.getElementById('se-version').textContent = '2.9';
+  document.getElementById('se-version').textContent = '3.0';
 
   // Letztes Backup anzeigen (Erinnerung gegen Datenverlust)
   const bi = document.getElementById('se-backupinfo');
