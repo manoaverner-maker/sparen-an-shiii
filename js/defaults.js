@@ -110,16 +110,15 @@ SK.defaultState = function () {
       schuldenRate: 0,         // Wenn aktiv: dieser Betrag pro Monat fuer den Schuldenabbau.
       waehrung: 'CHF',
 
-      /* ---- KI-Coach (optional, braucht eigenen Anthropic-API-Schluessel) ----
-         Die App kann optional echte Analysen von Claude (Anthropic) holen.
-         Der Schluessel bleibt NUR auf deinem Geraet (localStorage) und wird
-         nie ins Repo geschrieben. Kostet API-Guthaben (getrennt von Claude Max). */
-      aiAktiv: false,          // KI-Coach eingeschaltet?
-      aiKey: '',               // dein Anthropic-API-Schluessel (sk-ant-...)
-      aiModel: 'claude-opus-4-8', // welches Modell (in den Einstellungen waehlbar)
-
-      /* ---- Maerkte / Krypto ---- */
-      cryptoWaehrung: 'chf'     // Anzeige-Waehrung fuer Kurse: 'chf' oder 'usd'
+      /* ---- Synchronisation (optional, siehe js/sync.js) ----
+         Gleicht die Daten ueber ein PRIVATES GitHub-Repository zwischen
+         Laptop und Handy ab. Das Token erstellst du auf github.com und es
+         bleibt auf dem Geraet (localStorage) – Achtung: ein Backup-Export
+         enthaelt es ebenfalls. */
+      syncAktiv: false,               // Sync eingeschaltet?
+      syncToken: '',                  // Fine-grained GitHub-Token (github_pat_…)
+      syncRepo: 'money-manager-data', // Name des privaten Daten-Repos
+      syncOwner: ''                   // GitHub-Benutzername (wird beim Verbinden ermittelt)
     },
 
     /* ---- Ausgabenkategorien ---- */
@@ -204,21 +203,11 @@ SK.defaultState = function () {
       { id: 'wunsch', name: 'Wunschliste', icon: 'star', items: [] }
     ],
 
-    /* ---- Krypto-Watchlist (Funktion: Maerkte) ----
-       Coin-IDs von CoinGecko. Ethereum zuerst (dein Favorit). */
-    watchlist: ['ethereum', 'bitcoin', 'solana'],
-
     /* ---- Tages-Logbuch (Funktion: Streak) ----
        Pro Tag merken wir uns: wie hoch war das Tagesbudget und wie viel
        wurde ausgegeben -> daraus entsteht die "Tage in Folge unter Budget".
        Schluessel = Datum, Wert = { budget, ausgegeben, unterBudget }. */
     dailyLog: {},
-
-    /* ---- zwischengespeicherte Krypto-Kurse (fuer Offline-Anzeige) ---- */
-    cryptoCache: { ts: 0, data: null },
-
-    /* ---- KI-Recherche "Geld verdienen" (taeglich aktualisiert, gecacht) ---- */
-    moneyResearch: { datum: '', text: '' },
 
     /* ---- Ferienmodus (Funktion: Ferien) ----
        Ein KOMPLETT getrennter Topf fuers Reisen. Er beeinflusst das normale
@@ -255,7 +244,9 @@ SK.defaultState = function () {
       erstellt: SK.dateKey(),  // Datum des ersten Starts
       lastOpen: SK.dateKey(),  // zuletzt geoeffnet (fuer Monatswechsel-Erkennung)
       seedV2: true,            // Marker: v2-Startdaten (Motorrad/Sparkonto/Listen) gesetzt
-      lastBackupAt: ''         // Datum des letzten manuellen Backups (fuer die Erinnerung)
+      lastBackupAt: '',        // Datum des letzten manuellen Backups (fuer die Erinnerung)
+      updatedAt: 0             // Zeitstempel der letzten ECHTEN Aenderung (fuer den Sync:
+                               //   der neuere Stand gewinnt beim Abgleich)
     }
   };
 };

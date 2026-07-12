@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <!--
-  index.html  ·  Das Grundgeruest von Sparkurs
+  index.html  ·  Das Grundgeruest vom Money Manager
   ------------------------------------------------------------------
   Diese Datei ist die einzige HTML-Seite der App. Sie enthaelt:
     - im <head>: alle PWA-Einstellungen (Icon, Farbe, Manifest, iPhone)
     - im <body>: das Geruest aller Ansichten ("Views") und die Navigation
   Inhalte (Zahlen, Listen) werden von js/ui.js zur Laufzeit eingefuellt.
 
+  Design-Leitidee (v4): viel Luft, eine Botschaft pro Karte, Erklaerungen
+  stecken hinter kleinen Info-Knoepfen (data-info -> Info-Sheet unten).
+
   Reihenfolge der Skripte am Ende ist wichtig:
-    defaults -> storage -> budget -> charts -> ui -> app
-  (jede Datei baut auf den vorherigen auf; app.js startet alles)
+    defaults -> icons -> storage -> budget -> charts -> sync -> ui -> app
 -->
 <html lang="de-CH">
 <head>
@@ -19,7 +21,7 @@
   <meta name="description" content="Persoenliche Budget-App: Tagesbudget, Sparziele, Abos und Statistiken. Laeuft offline auf deinem Geraet.">
 
   <!-- PWA / Homescreen -->
-  <meta name="theme-color" content="#f2f3f5">
+  <meta name="theme-color" content="#f6f6f4">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -28,19 +30,18 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Money Manager">
 
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=6">
 </head>
 <body>
 
 <!-- ====================== KOPFZEILE ====================== -->
 <header class="topbar">
-  <div class="brand">
-    <img src="assets/logo.svg" alt="" class="brand-logo" width="32" height="32">
-    <span class="brand-name">Money <span class="brand-accent">Manager</span></span>
+  <div class="hello">
+    <small id="top-date">Heute</small>
+    <strong>Hallo 👋</strong>
   </div>
   <div class="topbar-right">
     <span class="month-pill" id="top-month">Monat</span>
-    <button class="icon-btn" id="btn-settings" data-icon="settings" aria-label="Einstellungen" title="Einstellungen"></button>
   </div>
 </header>
 
@@ -52,15 +53,12 @@
   <nav class="sidebar" aria-label="Hauptnavigation">
     <button class="side-link is-active" data-view="heute"><span class="ico" data-icon="home"></span><span>Heute</span></button>
     <button class="side-link" data-view="verlauf"><span class="ico" data-icon="list"></span><span>Verlauf</span></button>
+    <button class="side-link" data-view="statistik"><span class="ico" data-icon="chart"></span><span>Statistik</span></button>
     <button class="side-link" data-view="ziele"><span class="ico" data-icon="target"></span><span>Ziele</span></button>
     <button class="side-link" data-view="abos"><span class="ico" data-icon="repeat"></span><span>Abos</span></button>
     <button class="side-link" data-view="schulden"><span class="ico" data-icon="receipt"></span><span>Schulden &amp; Bussen</span></button>
     <button class="side-link" data-view="ferien"><span class="ico" data-icon="sun"></span><span>Ferienmodus</span></button>
     <button class="side-link" data-view="listen"><span class="ico" data-icon="star"></span><span>Listen</span></button>
-    <button class="side-link" data-view="markets"><span class="ico" data-icon="coin"></span><span>Märkte</span></button>
-    <button class="side-link" data-view="coach"><span class="ico" data-icon="ai"></span><span>KI-Coach</span></button>
-    <button class="side-link" data-view="ideen"><span class="ico" data-icon="lightbulb"></span><span>Geld-Ideen</span></button>
-    <button class="side-link" data-view="statistik"><span class="ico" data-icon="chart"></span><span>Statistik</span></button>
     <button class="side-link" data-view="einstellungen"><span class="ico" data-icon="settings"></span><span>Einstellungen</span></button>
     <button class="side-add" id="btn-add-desktop"><span class="ic-pre" data-icon="plus"></span>Ausgabe</button>
   </nav>
@@ -70,175 +68,102 @@
 
     <!-- ---------- HEUTE (Dashboard) ---------- -->
     <section class="view is-active" id="view-heute">
-      <!-- Hero: Heute noch verfuegbar -->
-      <div class="card card--lit hero" id="hero-card">
-        <div class="hero-label label">Heute noch verfügbar</div>
-        <div class="hero-amount amount-hero"><span id="hd-heute">0</span><span class="cur">CHF</span></div>
-        <div class="ampel-bar"><div class="ampel-fill" id="hd-ampelbar"></div></div>
-        <div class="hero-sub">Tagesbudget heute: <strong id="hd-tagesbudget">0</strong> CHF</div>
+
+      <!-- Hero: grosse Zahl im Fortschrittsring -->
+      <div class="card hero" id="hero-card">
+        <div class="ring">
+          <svg width="216" height="216" viewBox="0 0 216 216" aria-hidden="true">
+            <circle class="ring-bg" cx="108" cy="108" r="97"/>
+            <circle class="ring-fill" id="hd-ring" cx="108" cy="108" r="97"
+                    stroke-dasharray="609.5" stroke-dashoffset="0"/>
+          </svg>
+          <div class="ring-num">
+            <strong><span id="hd-heute">0</span><small>CHF</small></strong>
+            <span>heute noch verfügbar</span>
+          </div>
+        </div>
+        <div class="hero-sub">Tagesbudget <b id="hd-tagesbudget">0</b> CHF <button class="info-btn" data-info="tagesbudget" aria-label="Was ist das Tagesbudget?">i</button></div>
         <div class="hero-payday" id="hd-payday"></div>
-        <div class="hero-spark" id="hd-spark"></div>
         <button class="btn btn-ghost btn-sm hero-income" id="btn-income"><span class="ic-pre" data-icon="plus"></span>Geld hinzufügen</button>
       </div>
 
-      <!-- Tempo-Warnung -->
-      <div class="card pace" id="pace-card">
-        <div class="pace-icon" id="hd-pace-icon"></div>
-        <div class="pace-text" id="hd-pace">Tempo wird berechnet …</div>
-      </div>
-
-      <!-- Smart-Analyse (laeuft auf dem Geraet, ohne KI-Schluessel) -->
-      <div class="card insight-card" id="insight-card">
-        <div class="row-between section-head">
-          <h2><span class="ic-pre" data-icon="ai"></span>Smart-Analyse</h2>
-          <button class="link-btn" data-view="coach">KI-Coach →</button>
-        </div>
-        <div id="hd-insights" class="insight-list"></div>
+      <!-- Status in einer Zeile (Tempo) -->
+      <div class="status" id="pace-card">
+        <span class="status-dot"></span>
+        <span id="hd-pace">Wird berechnet …</span>
       </div>
 
       <!-- Abo-Erinnerung (nur sichtbar wenn bald eine Verlaengerung ansteht) -->
-      <div class="card alert hidden" id="aboalert-card">
-        <div class="alert-icon" data-icon="bell"></div>
-        <div><div class="alert-title">Abo-Verlängerung steht an</div><div class="alert-text" id="hd-aboalert"></div></div>
+      <div class="status warn hidden" id="aboalert-card">
+        <span class="status-dot"></span>
+        <span id="hd-aboalert"></span>
       </div>
 
       <!-- Backup-Erinnerung (sichtbar, wenn Daten da sind und lange kein Backup) -->
-      <div class="card alert backup-alert hidden" id="backup-card">
-        <div class="alert-icon" data-icon="download"></div>
-        <div class="backup-main">
-          <div class="alert-title">Sichere deine Daten</div>
-          <div class="alert-text" id="hd-backuptext">Deine Daten liegen nur auf diesem Gerät. Lade ab und zu ein Backup herunter, damit nie etwas verloren geht.</div>
-          <div class="backup-actions">
-            <button class="btn btn-accent btn-sm" data-act="backup-now"><span class="ic-pre" data-icon="download"></span>Jetzt sichern</button>
-            <button class="btn btn-ghost btn-sm" data-act="backup-later">Später</button>
-          </div>
+      <div class="card backup-alert hidden" id="backup-card">
+        <div class="alert-title">Sichere deine Daten <button class="info-btn" data-info="backup" aria-label="Warum sichern?">i</button></div>
+        <div class="alert-text" id="hd-backuptext"></div>
+        <div class="backup-actions">
+          <button class="btn btn-accent btn-sm" data-act="backup-now"><span class="ic-pre" data-icon="download"></span>Jetzt sichern</button>
+          <button class="btn btn-ghost btn-sm" data-act="backup-later">Später</button>
         </div>
       </div>
 
-      <!-- kleine Monatszahlen -->
-      <div class="mini-grid">
-        <div class="card mini"><div class="mini-label">Seit dem letzten Lohn</div><div class="mini-val"><span id="hd-monat">0</span> CHF</div></div>
-        <div class="card mini"><div class="mini-label">Noch frei bis zum Lohn</div><div class="mini-val"><span id="hd-rest">0</span> CHF</div></div>
-      </div>
-
-      <!-- Live ETH-Kurs (kurzer Blick; Details im Märkte-Tab) -->
-      <div class="card eth-mini" id="eth-mini-card" data-view="markets">
-        <div class="eth-mini-left">
-          <div class="entry-ico" style="color:var(--gold)"><span data-icon="coin"></span></div>
-          <div><div class="eth-mini-name">Ethereum</div><div class="cap" id="hd-eth-sub">Kurs wird geladen …</div></div>
-        </div>
-        <div class="eth-mini-right">
-          <div class="eth-mini-price" id="hd-eth-price">—</div>
-          <div class="chg" id="hd-eth-chg"></div>
-        </div>
-      </div>
-
-      <!-- Sparziel (Hauptziel) -->
+      <!-- Hauptsparziel (kompakt) -->
       <div class="card goal-mini" id="goal-mini-card">
         <div class="row-between">
           <div class="goal-mini-name" id="hd-zielname">Sparziel</div>
           <div class="goal-mini-pct" id="hd-zielpct">0%</div>
         </div>
         <div class="progress"><div class="progress-fill" id="hd-zielbar"></div></div>
-        <div class="goal-mini-text" id="hd-zieltext">0 / 0 CHF</div>
-        <button class="btn btn-ghost btn-block" id="btn-tagesrest"><span class="ic-pre" data-icon="coins"></span>Tagesrest ins Sparziel verschieben</button>
+        <div class="goal-mini-text muted" id="hd-zieltext">0 / 0 CHF</div>
+        <div class="tagesrest-row">
+          <button class="btn btn-ghost btn-block" id="btn-tagesrest"><span class="ic-pre" data-icon="coins"></span>Tagesrest ins Sparziel</button>
+          <button class="info-btn" data-info="tagesrest" aria-label="Was macht das?">i</button>
+        </div>
       </div>
 
       <!-- letzte Ausgaben -->
-      <div class="card">
-        <div class="row-between section-head">
-          <h2>Letzte Ausgaben</h2>
-          <button class="link-btn" data-view="verlauf">alle anzeigen →</button>
-        </div>
+      <div class="section-head">
+        <h2>Letzte Ausgaben</h2>
+        <button class="link-btn" data-view="verlauf">alle →</button>
+      </div>
+      <div class="card card--list">
         <div id="hd-letzte" class="entry-list compact"></div>
       </div>
     </section>
 
-    <!-- ---------- VERLAUF ---------- -->
+    <!-- ---------- VERLAUF (mit Statistik-Umschalter) ---------- -->
     <section class="view" id="view-verlauf">
       <h1 class="view-title">Verlauf</h1>
+      <div class="seg">
+        <button class="seg-btn is-active" data-view="verlauf">Liste</button>
+        <button class="seg-btn" data-view="statistik">Statistik</button>
+      </div>
       <div class="filter-row" id="vl-filter"></div>
       <div id="vl-liste" class="entry-list"></div>
     </section>
 
-    <!-- ---------- ZIELE ---------- -->
-    <section class="view" id="view-ziele">
-      <div class="row-between">
-        <h1 class="view-title">Sparziele</h1>
-        <button class="btn btn-accent btn-sm" id="btn-add-ziel">＋ Ziel</button>
-      </div>
-      <div id="zl-liste"></div>
-    </section>
-
-    <!-- ---------- ABOS ---------- -->
-    <section class="view" id="view-abos">
-      <div class="row-between">
-        <h1 class="view-title">Abo-Radar</h1>
-        <button class="btn btn-accent btn-sm" id="btn-add-abo">＋ Abo</button>
-      </div>
-      <div class="card abo-total">
-        <div class="mini-label">Abos pro Monat (aktiv)</div>
-        <div class="abo-total-val"><span id="ab-total">0</span> CHF</div>
-        <div class="abo-total-sub" id="ab-sub"></div>
-      </div>
-      <div id="ab-liste"></div>
-    </section>
-
-    <!-- ---------- SCHULDEN / SONDERAUSGABEN / BUSSEN ---------- -->
-    <section class="view" id="view-schulden">
-      <div class="row-between">
-        <h1 class="view-title">Schulden &amp; Bussen</h1>
-        <div class="head-actions">
-          <button class="btn btn-ghost btn-sm" id="btn-add-busse"><span class="ic-pre" data-icon="ticket"></span>Busse</button>
-          <button class="btn btn-accent btn-sm" id="btn-add-debt">＋ Posten</button>
-        </div>
-      </div>
-
-      <!-- Summe aller offenen Schulden -->
-      <div class="card debt-total">
-        <div class="mini-label">Offene Schulden &amp; Bussen gesamt</div>
-        <div class="debt-total-val"><span id="sc-total">0</span> CHF</div>
-        <div class="abo-total-sub" id="sc-sub"></div>
-      </div>
-
-      <!-- Offene Posten -->
-      <div id="sc-liste"></div>
-
-      <!-- Archiv (erledigte Posten, einklappbar) -->
-      <div id="sc-archiv-wrap" class="hidden">
-        <button class="archiv-head" id="sc-archiv-toggle">
-          <span class="chev" data-icon="chevron"></span>
-          <span>Erledigt (<span id="sc-archiv-count">0</span>)</span>
-        </button>
-        <div id="sc-archiv" class="hidden"></div>
-      </div>
-    </section>
-
-    <!-- ---------- FERIENMODUS ---------- -->
-    <!-- Eigener Reise-Topf, getrennt vom Monatsbudget. Der gesamte Inhalt
-         (Einrichtung ODER laufende Ferien + Rueckblick + Schnell-Links) wird
-         von SK.ui.renderFerien() in #fe-body eingefuellt. -->
-    <section class="view" id="view-ferien">
-      <h1 class="view-title">Ferienmodus</h1>
-      <div id="fe-body"></div>
-    </section>
-
-    <!-- ---------- STATISTIK ---------- -->
+    <!-- ---------- STATISTIK (zweiter Schalter im Verlauf) ---------- -->
     <section class="view" id="view-statistik">
-      <h1 class="view-title">Statistik</h1>
+      <h1 class="view-title">Verlauf</h1>
+      <div class="seg">
+        <button class="seg-btn" data-view="verlauf">Liste</button>
+        <button class="seg-btn is-active" data-view="statistik">Statistik</button>
+      </div>
 
-      <!-- Kalender: jeder Tag eingefaerbt je nach Ausgaben (grün = sparsam, rot = drüber) -->
+      <!-- Kalender: jeder Tag eingefaerbt je nach Ausgaben -->
       <div class="card">
-        <div class="section-head"><h2>Kalender</h2></div>
+        <div class="section-head"><h2>Kalender <button class="info-btn" data-info="kalender" aria-label="Was zeigen die Farben?">i</button></h2></div>
         <div id="st-calendar"></div>
       </div>
 
       <div class="stat-grid">
         <div class="card">
-          <div class="section-head"><h2>Monatsverlauf</h2></div>
+          <div class="section-head"><h2>Monatsverlauf <button class="info-btn" data-info="monatsverlauf" aria-label="Was zeigt die Grafik?">i</button></h2></div>
           <div class="chart-wrap" id="st-line"></div>
           <div class="chart-legend">
-            <span><i class="dot" style="background:var(--gold)"></i> Soll (gleichmässig)</span>
+            <span><i class="dot" style="background:var(--warn)"></i> Soll</span>
             <span><i class="dot" style="background:var(--accent)"></i> Tatsächlich</span>
           </div>
         </div>
@@ -251,91 +176,89 @@
       </div>
 
       <div class="mini-grid">
-        <div class="card mini streak"><div class="mini-label"><span class="ic-pre" data-icon="flame"></span>Streak</div><div class="mini-val"><span id="st-streak">0</span> Tage</div><div class="mini-foot">in Folge unter Budget</div></div>
-        <div class="card mini"><div class="mini-label">Ø pro Tag</div><div class="mini-val"><span id="st-avgday">0</span> CHF</div><div class="mini-foot">diesen Monat</div></div>
+        <div class="card mini streak"><div class="mini-label"><span class="ic-pre" data-icon="flame"></span>Streak <button class="info-btn" data-info="streak" aria-label="Was ist die Streak?">i</button></div><div class="mini-val"><span id="st-streak">0</span> Tage</div></div>
+        <div class="card mini"><div class="mini-label">Ø pro Tag</div><div class="mini-val"><span id="st-avgday">0</span> CHF</div></div>
       </div>
       <div class="mini-grid">
         <div class="card mini"><div class="mini-label">Ø pro Woche</div><div class="mini-val"><span id="st-avgweek">0</span> CHF</div></div>
-        <div class="card mini" id="hoch-card"><div class="mini-label">Hochrechnung Monat</div><div class="mini-val"><span id="st-hoch">0</span> CHF</div><div class="mini-foot" id="st-hoch-foot"></div></div>
+        <div class="card mini" id="hoch-card"><div class="mini-label">Hochrechnung <button class="info-btn" data-info="hochrechnung" aria-label="Was ist die Hochrechnung?">i</button></div><div class="mini-val"><span id="st-hoch">0</span> CHF</div><div class="mini-foot" id="st-hoch-foot"></div></div>
+      </div>
+      <div class="mini-grid">
+        <div class="card mini"><div class="mini-label">Seit dem letzten Lohn</div><div class="mini-val"><span id="hd-monat">0</span> CHF</div></div>
+        <div class="card mini"><div class="mini-label">Noch frei bis zum Lohn</div><div class="mini-val"><span id="hd-rest">0</span> CHF</div></div>
       </div>
       <div class="card" id="vormonat-card">
         <div class="mini-label">Vergleich zum Vormonat</div>
-        <div class="mini-val" id="st-vormonat">—</div>
+        <div class="mini-val sm" id="st-vormonat">—</div>
       </div>
-
       <div class="mini-grid">
-        <div class="card mini"><div class="mini-label">Schulden gesamt</div><div class="mini-val"><span id="st-schulden">0</span> CHF</div><div class="mini-foot">noch offen</div></div>
-        <div class="card mini"><div class="mini-label">Diesen Monat abbezahlt</div><div class="mini-val"><span id="st-schulden-monat">0</span> CHF</div><div class="mini-foot">auf Schulden</div></div>
+        <div class="card mini"><div class="mini-label">Schulden gesamt</div><div class="mini-val"><span id="st-schulden">0</span> CHF</div></div>
+        <div class="card mini"><div class="mini-label">Diesen Monat abbezahlt</div><div class="mini-val"><span id="st-schulden-monat">0</span> CHF</div></div>
       </div>
     </section>
 
-    <!-- ---------- MÄRKTE (Krypto live) ---------- -->
-    <section class="view" id="view-markets">
+    <!-- ---------- ZIELE ---------- -->
+    <section class="view" id="view-ziele">
       <div class="row-between">
-        <h1 class="view-title">Märkte</h1>
-        <button class="icon-btn" id="btn-market-refresh" data-icon="refresh" title="Kurse aktualisieren" aria-label="Aktualisieren"></button>
+        <h1 class="view-title">Ziele <button class="info-btn" data-info="ziele" aria-label="Wie funktionieren Ziele?">i</button></h1>
+        <button class="pill-btn" id="btn-add-ziel">＋ Neu</button>
       </div>
-      <p class="cap" id="mk-stand">Live-Kurse von CoinGecko · keine Anlageberatung</p>
-      <div id="mk-liste"></div>
-      <div class="card disclaimer">
-        <span class="ic-pre" data-icon="alert"></span>
-        <span><strong>Kein Finanzrat.</strong> Kurse sind nur zur Info und können verzögert sein. Krypto ist sehr schwankungsanfällig – investiere nur Geld, das du nicht brauchst. Echte Aktienkurse gibt es gratis leider nicht direkt im Browser; darum Fokus Krypto.</span>
-      </div>
+      <div id="zl-liste"></div>
     </section>
 
-    <!-- ---------- KI-COACH ---------- -->
-    <section class="view" id="view-coach">
-      <h1 class="view-title">KI-Coach</h1>
-
-      <!-- Smart-Analyse (immer da) -->
-      <div class="card">
-        <div class="section-head"><h2><span class="ic-pre" data-icon="ai"></span>Smart-Analyse</h2></div>
-        <p class="muted">Läuft direkt auf deinem Gerät, ohne Schlüssel und kostenlos.</p>
-        <div id="co-insights" class="insight-list"></div>
+    <!-- ---------- ABOS ---------- -->
+    <section class="view" id="view-abos">
+      <div class="row-between">
+        <h1 class="view-title">Abos <button class="info-btn" data-info="abos" aria-label="Was ist der Abo-Radar?">i</button></h1>
+        <button class="pill-btn" id="btn-add-abo">＋ Neu</button>
       </div>
-
-      <!-- echter KI-Coach (optional) -->
-      <div class="card" id="co-ai-card">
-        <div class="section-head"><h2>Persönliche Analyse von Claude</h2></div>
-        <div id="co-ai-body"></div>
+      <div class="card abo-total">
+        <div class="mini-label">Abos pro Monat (aktiv)</div>
+        <div class="mini-val"><span id="ab-total">0</span> CHF</div>
+        <div class="mini-foot" id="ab-sub"></div>
       </div>
+      <div class="card card--list" id="ab-liste"></div>
     </section>
 
-    <!-- ---------- GELD-IDEEN ---------- -->
-    <section class="view" id="view-ideen">
-      <h1 class="view-title">Geld-Ideen</h1>
-
-      <div class="card" id="id-ai-card">
-        <div class="row-between section-head">
-          <h2><span class="ic-pre" data-icon="lightbulb"></span>Idee des Tages</h2>
-          <button class="icon-btn" id="btn-idea-refresh" data-icon="refresh" title="Neue Idee" aria-label="Neue Idee"></button>
+    <!-- ---------- SCHULDEN / SONDERAUSGABEN / BUSSEN ---------- -->
+    <section class="view" id="view-schulden">
+      <div class="row-between">
+        <h1 class="view-title">Schulden <button class="info-btn" data-info="schulden" aria-label="Wie funktioniert dieser Bereich?">i</button></h1>
+        <div class="head-actions">
+          <button class="pill-btn ghost" id="btn-add-busse">＋ Busse</button>
+          <button class="pill-btn" id="btn-add-debt">＋ Posten</button>
         </div>
-        <div id="id-ai-body"></div>
       </div>
 
-      <div class="card">
-        <div class="section-head"><h2><span class="ic-pre" data-icon="lightbulb"></span>Mehr verdienen (Schweiz)</h2></div>
-        <div id="id-static"></div>
+      <div class="card abo-total">
+        <div class="mini-label">Offen gesamt</div>
+        <div class="mini-val"><span id="sc-total">0</span> CHF</div>
+        <div class="mini-foot" id="sc-sub"></div>
       </div>
 
-      <div class="card">
-        <div class="section-head"><h2><span class="ic-pre" data-icon="coins"></span>Im Alltag sparen (Schweiz)</h2></div>
-        <div id="id-saving"></div>
-      </div>
+      <div id="sc-liste"></div>
 
-      <div class="card disclaimer">
-        <span class="ic-pre" data-icon="alert"></span>
-        <span><strong>Keine personalisierte Finanzberatung.</strong> Allgemeine, recherchierte Ideen zur Orientierung. Zahlen sind Richtwerte 2026.</span>
+      <div id="sc-archiv-wrap" class="hidden">
+        <button class="archiv-head" id="sc-archiv-toggle">
+          <span class="chev" data-icon="chevron"></span>
+          <span>Erledigt (<span id="sc-archiv-count">0</span>)</span>
+        </button>
+        <div id="sc-archiv" class="hidden"></div>
       </div>
+    </section>
+
+    <!-- ---------- FERIENMODUS ---------- -->
+    <section class="view" id="view-ferien">
+      <h1 class="view-title">Ferienmodus <button class="info-btn" data-info="ferien" aria-label="Was ist der Ferienmodus?">i</button></h1>
+      <div id="fe-body"></div>
     </section>
 
     <!-- ---------- LISTEN / WUNSCHLISTE ---------- -->
     <section class="view" id="view-listen">
       <div class="row-between">
-        <h1 class="view-title">Listen</h1>
-        <button class="btn btn-accent btn-sm" id="btn-add-list">＋ Liste</button>
+        <h1 class="view-title">Listen <button class="info-btn" data-info="listen" aria-label="Wofür sind Listen?">i</button></h1>
+        <button class="pill-btn" id="btn-add-list">＋ Neu</button>
       </div>
-      <p class="cap">Eigene Listen, z.B. eine Wunschliste mit Preisen. Rein informativ – fliesst nicht ins Budget.</p>
       <div id="ls-liste"></div>
     </section>
 
@@ -343,13 +266,10 @@
     <section class="view" id="view-mehr">
       <h1 class="view-title">Mehr</h1>
       <div class="more-list">
-        <button class="more-row" data-view="ziele"><span class="ico" data-icon="target"></span><span class="more-label">Sparziele</span><span class="more-chev" data-icon="chevronR"></span></button>
-        <button class="more-row" data-view="abos"><span class="ico" data-icon="repeat"></span><span class="more-label">Abo-Radar</span><span class="more-chev" data-icon="chevronR"></span></button>
+        <button class="more-row" data-view="abos"><span class="ico" data-icon="repeat"></span><span class="more-label">Abos</span><span class="more-chev" data-icon="chevronR"></span></button>
         <button class="more-row" data-view="schulden"><span class="ico" data-icon="receipt"></span><span class="more-label">Schulden &amp; Bussen</span><span class="more-chev" data-icon="chevronR"></span></button>
         <button class="more-row" data-view="ferien"><span class="ico" data-icon="sun"></span><span class="more-label">Ferienmodus</span><span class="more-chev" data-icon="chevronR"></span></button>
         <button class="more-row" data-view="listen"><span class="ico" data-icon="star"></span><span class="more-label">Listen</span><span class="more-chev" data-icon="chevronR"></span></button>
-        <button class="more-row" data-view="coach"><span class="ico" data-icon="ai"></span><span class="more-label">KI-Coach</span><span class="more-chev" data-icon="chevronR"></span></button>
-        <button class="more-row" data-view="ideen"><span class="ico" data-icon="lightbulb"></span><span class="more-label">Geld-Ideen</span><span class="more-chev" data-icon="chevronR"></span></button>
         <button class="more-row" data-view="einstellungen"><span class="ico" data-icon="settings"></span><span class="more-label">Einstellungen</span><span class="more-chev" data-icon="chevronR"></span></button>
       </div>
     </section>
@@ -358,63 +278,50 @@
     <section class="view" id="view-einstellungen">
       <h1 class="view-title">Einstellungen</h1>
 
-      <div class="card">
-        <h2 class="section-head">Geld</h2>
-        <label class="field"><span>Monatslohn netto (CHF)</span><input type="number" id="se-lohn" inputmode="decimal" min="0" step="50"></label>
-        <label class="field"><span>Fixkosten pro Monat (CHF)</span><input type="number" id="se-fixkosten" inputmode="decimal" min="0" step="10"></label>
-        <label class="field"><span>Festes Monatsbudget für den Alltag (CHF, optional)<small>Wieviel du pro Monat für den täglichen Gebrauch ausgeben willst. Leer/0 = automatisch aus Lohn − Fixkosten − Sparen berechnen.</small></span><input type="number" id="se-alltag" inputmode="decimal" min="0" step="10" placeholder="z.B. 400"></label>
-        <label class="switch-row"><span>Abo-Summe zu den Fixkosten dazurechnen<small>Nur einschalten, wenn deine Fixkosten die Abos noch NICHT enthalten.</small></span>
+      <div class="group-label">GELD</div>
+      <div class="card set-group">
+        <label class="set-row" for="se-lohn"><span class="lbl">Monatslohn netto</span><span class="set-input"><input type="number" id="se-lohn" inputmode="decimal" min="0" step="50"><i>CHF</i></span></label>
+        <label class="set-row" for="se-fixkosten"><span class="lbl">Fixkosten pro Monat <button class="info-btn" data-info="fixkosten" aria-label="Was sind Fixkosten?">i</button></span><span class="set-input"><input type="number" id="se-fixkosten" inputmode="decimal" min="0" step="10"><i>CHF</i></span></label>
+        <label class="set-row" for="se-alltag"><span class="lbl">Festes Monatsbudget <button class="info-btn" data-info="monatsbudget" aria-label="Was ist das feste Monatsbudget?">i</button></span><span class="set-input"><input type="number" id="se-alltag" inputmode="decimal" min="0" step="10" placeholder="Auto"><i>CHF</i></span></label>
+        <label class="set-row"><span class="lbl">Abos zu Fixkosten zählen <button class="info-btn" data-info="abosfix" aria-label="Wann einschalten?">i</button></span>
           <input type="checkbox" id="se-aboswitch" class="switch"></label>
       </div>
 
-      <div class="card">
-        <h2 class="section-head">Schulden-Rate</h2>
-        <label class="switch-row"><span>Monatliche Schulden-Rate vom verfügbaren Geld abziehen<small>Wird – wie die Sparrate – vor dem Tagesbudget reserviert. Einzelne Zahlungen verfälschen so dein Tagesbudget nicht.</small></span>
+      <div class="group-label">SPAREN &amp; SCHULDEN</div>
+      <div class="card set-group">
+        <label class="set-row"><span class="lbl">Schulden-Rate abziehen <button class="info-btn" data-info="schuldenrate" aria-label="Was macht die Schulden-Rate?">i</button></span>
           <input type="checkbox" id="se-schuldenswitch" class="switch"></label>
-        <label class="field" id="se-schuldenrate-wrap"><span>Schulden-Rate pro Monat (CHF)</span><input type="number" id="se-schuldenrate" inputmode="decimal" min="0" step="10"></label>
+        <label class="set-row" for="se-schuldenrate" id="se-schuldenrate-wrap"><span class="lbl">Monatliche Rate</span><span class="set-input"><input type="number" id="se-schuldenrate" inputmode="decimal" min="0" step="10"><i>CHF</i></span></label>
       </div>
 
-      <div class="card">
-        <h2 class="section-head"><span class="ic-pre" data-icon="ai"></span>KI-Coach (optional)</h2>
-        <p class="muted">Hol echte Analysen &amp; Geld-Ideen von Claude. Braucht einen eigenen Anthropic-API-Schlüssel (von <strong>console.anthropic.com</strong>, mit API-Guthaben). Das ist <strong>getrennt</strong> von einem Claude-Max-Abo. Der Schlüssel bleibt nur auf diesem Gerät.</p>
-        <label class="switch-row"><span>KI-Coach einschalten<small>Bei eingeschaltetem Coach wird eine Zusammenfassung deiner Zahlen an Anthropic gesendet.</small></span>
-          <input type="checkbox" id="se-aiswitch" class="switch"></label>
-        <label class="field" id="se-aikey-wrap"><span>Anthropic API-Schlüssel (sk-ant-…)</span>
-          <input type="password" id="se-aikey" autocomplete="off" placeholder="sk-ant-…"></label>
-        <label class="field"><span>Modell</span>
-          <select id="se-aimodel">
-            <option value="claude-opus-4-8">Claude Opus 4.8 (am besten)</option>
-            <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (günstiger)</option>
-            <option value="claude-haiku-4-5">Claude Haiku 4.5 (am günstigsten)</option>
-          </select></label>
-        <button class="btn btn-ghost btn-block" id="se-aitest">Schlüssel testen</button>
-        <div class="cap" id="se-aitest-out"></div>
-      </div>
-
-      <div class="card">
-        <h2 class="section-head"><span class="ic-pre" data-icon="coin"></span>Märkte</h2>
-        <label class="field"><span>Kurs-Anzeigewährung</span>
-          <select id="se-cryptocur">
-            <option value="chf">CHF</option>
-            <option value="usd">USD</option>
-          </select></label>
-        <p class="muted">Krypto-Kurse kommen von CoinGecko (gratis, ohne Schlüssel). Watchlist: ETH, BTC, SOL.</p>
-      </div>
-
-      <div class="card">
-        <h2 class="section-head">Kategorien</h2>
+      <div class="group-label">KATEGORIEN</div>
+      <div class="card set-group">
         <div id="se-kategorien" class="cat-edit-list"></div>
         <div class="add-inline">
           <input type="text" id="se-newcat" placeholder="Neue Kategorie …" maxlength="20">
-          <button class="btn btn-accent btn-sm" id="se-addcat">＋</button>
+          <button class="pill-btn" id="se-addcat">＋</button>
         </div>
       </div>
 
-      <div class="card">
-        <h2 class="section-head">Daten &amp; Backup</h2>
-        <p class="muted">Alle Daten liegen <strong>nur auf diesem Gerät</strong>. Das Handy kann sie bei Speichermangel oder langer Nichtnutzung von selbst löschen – darum <strong>regelmässig ein Backup</strong> herunterladen und sicher ablegen (z.B. in Dateien/iCloud).</p>
-        <p class="cap" id="se-backupinfo"></p>
-        <button class="btn btn-ghost btn-block" id="se-export"><span class="ic-pre" data-icon="download"></span>Backup exportieren (JSON)</button>
+      <div class="group-label">SYNCHRONISATION</div>
+      <div class="card set-group">
+        <label class="set-row"><span class="lbl">Mit GitHub synchronisieren <button class="info-btn" data-info="sync" aria-label="Wie funktioniert der Sync?">i</button></span>
+          <input type="checkbox" id="sy-switch" class="switch"></label>
+        <div id="sy-setup" class="sy-setup hidden">
+          <label class="field"><span>GitHub-Token <button class="info-btn" data-info="synctoken" aria-label="Woher bekomme ich das Token?">i</button></span>
+            <input type="password" id="sy-token" autocomplete="off" placeholder="github_pat_…"></label>
+          <label class="field"><span>Daten-Repository</span>
+            <input type="text" id="sy-repo" placeholder="money-manager-data"></label>
+          <button class="btn btn-accent btn-block" id="sy-connect">Verbinden</button>
+        </div>
+        <div class="set-row hidden" id="sy-status-row"><span class="lbl">Status</span><span class="set-val" id="sy-status">—</span></div>
+        <button class="btn btn-ghost btn-block hidden" id="sy-now"><span class="ic-pre" data-icon="refresh"></span>Jetzt synchronisieren</button>
+      </div>
+
+      <div class="group-label">DATEN</div>
+      <div class="card set-group">
+        <div class="set-row"><span class="lbl">Letztes Backup</span><span class="set-val" id="se-backupinfo">—</span></div>
+        <button class="btn btn-ghost btn-block" id="se-export"><span class="ic-pre" data-icon="download"></span>Backup exportieren</button>
         <label class="btn btn-ghost btn-block" for="se-importfile"><span class="ic-pre" data-icon="upload"></span>Backup importieren</label>
         <input type="file" id="se-importfile" accept="application/json,.json" hidden>
         <button class="btn btn-danger btn-block" id="se-reset"><span class="ic-pre" data-icon="trash"></span>Alle Daten zurücksetzen</button>
@@ -422,22 +329,22 @@
 
       <div class="card about">
         <img src="assets/logo.svg" alt="" width="40" height="40">
-        <div><strong>Money Manager</strong> · Version <span id="se-version">1.0</span><br><span class="muted">Manoa Verner · 2026 · läuft offline</span></div>
+        <div><strong>Money Manager</strong> · Version <span id="se-version">4.0</span><br><span class="muted">Manoa Verner · 2026 · läuft offline</span></div>
       </div>
     </section>
 
   </main>
 </div>
 
-<!-- ====================== SCHWEBENDER + KNOPF (mobil) ====================== -->
+<!-- ====================== SCHWEBENDER + KNOPF (mobil, in der Nav-Mitte) ====================== -->
 <button class="fab" id="fab-add" data-icon="plus" aria-label="Ausgabe erfassen"></button>
 
 <!-- ====================== UNTERE NAVIGATION (mobil) ====================== -->
 <nav class="bottomnav" aria-label="Hauptnavigation">
   <button class="tab is-active" data-view="heute"><span class="ico" data-icon="home"></span><span class="lbl">Heute</span></button>
   <button class="tab" data-view="verlauf"><span class="ico" data-icon="list"></span><span class="lbl">Verlauf</span></button>
-  <button class="tab" data-view="statistik"><span class="ico" data-icon="chart"></span><span class="lbl">Statistik</span></button>
-  <button class="tab" data-view="markets"><span class="ico" data-icon="coin"></span><span class="lbl">Märkte</span></button>
+  <span class="tab-spacer" aria-hidden="true"></span>
+  <button class="tab" data-view="ziele"><span class="ico" data-icon="target"></span><span class="lbl">Ziele</span></button>
   <button class="tab" data-view="mehr"><span class="ico" data-icon="grid"></span><span class="lbl">Mehr</span></button>
 </nav>
 
@@ -456,6 +363,15 @@
     <button class="btn btn-ghost" id="er-cancel">Abbrechen</button>
     <button class="btn btn-accent" id="er-save">Speichern</button>
   </div>
+</div>
+
+<!-- ====================== INFO-SHEET (Erklaerungen auf Abruf) ====================== -->
+<div class="sheet-backdrop" id="info-backdrop"></div>
+<div class="sheet info-sheet" id="info-sheet" role="dialog" aria-modal="true" aria-label="Erklärung">
+  <div class="sheet-handle"></div>
+  <h2 class="info-title"><span class="info-badge">i</span><span id="info-title-text">Info</span></h2>
+  <p class="info-text" id="info-text"></p>
+  <button class="btn btn-accent btn-block" id="info-close">Alles klar</button>
 </div>
 
 <!-- ====================== GENERISCHES MODAL (Ziele/Abos/Einzahlung) ====================== -->
@@ -482,8 +398,7 @@
 <script src="js/storage.js"></script>
 <script src="js/budget.js"></script>
 <script src="js/charts.js"></script>
-<script src="js/markets.js"></script>
-<script src="js/ai.js"></script>
+<script src="js/sync.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/app.js"></script>
 </body>

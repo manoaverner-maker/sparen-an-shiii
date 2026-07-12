@@ -41,9 +41,6 @@ function mergeDefaults(saved) {
   out.entries = saved.entries || [];
   out.debts = saved.debts || [];
   out.lists = saved.lists || def.lists;
-  out.watchlist = saved.watchlist || def.watchlist;
-  out.cryptoCache = saved.cryptoCache || { ts: 0, data: null };
-  out.moneyResearch = saved.moneyResearch || { datum: '', text: '' };
   out.dailyLog = saved.dailyLog || {};
   /* Ferienmodus: fehlende Felder mit den Standardwerten auffuellen, vorhandene
      behalten (so bekommen Bestandsdaten den neuen Topf, ohne Datenverlust). */

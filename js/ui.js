@@ -22,6 +22,7 @@ SK.ui = {};
 SK.ui.verlaufFilter = 'alle';   // aktueller Filter im Verlauf-Tab
 SK.ui.debtArchiveOpen = false;  // ist das Schulden-Archiv aufgeklappt?
 SK.ui.debtExpanded = {};        // welche Schulden-Posten zeigen ihre Zahlungsliste? (id -> true)
+SK.ui.goalExpanded = {};        // welche Ziel-Karten sind aufgeklappt? (id -> true)
 SK.ui._backupDismissed = false; // Backup-Erinnerung fuer diese Sitzung weggeklickt?
 SK.ui.ferienArchOpen = false;   // Archiv "Frühere Reisen" aufgeklappt?
 SK.ui.ferienArchExpanded = {};  // welche Archiv-Reise zeigt ihre Detail-Aufschluesselung?
@@ -31,55 +32,6 @@ SK.ui.calOffset = 0;            // angezeigter Kalender-Monat: 0 = aktuell, -1 =
 
 const MONATE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 const WOCHENTAGE = ['So','Mo','Di','Mi','Do','Fr','Sa'];
-
-/* Recherchierte, bodenständige Wege zum Geldverdienen/-sparen (Schweiz, 2026).
-   Werden im Geld-Ideen-Tab angezeigt – auch ohne KI. Quelle: eigene Recherche. */
-SK.MONEY_IDEAS = [
-  { gruppe: 'Mehr Einkommen im Beruf', items: [
-    { t: 'Weiterbildung Techniker HF / Fachausweis', d: 'Der grösste Lohnhebel langfristig: erfahrene Gebäudetechnikplaner liegen bei ~8000+ CHF statt ~5300 als Einsteiger. Arbeitgeber zahlt oft mit. Erst nach 1–2 Jahren Praxis.' },
-    { t: 'Auf gefragte Nische spezialisieren', d: 'Reinraum-/Spital-Lüftung, SIA-380-Nachweise, Inbetriebnahme/Messtechnik – Nischenwissen wird besser bezahlt und macht unkündbar.' },
-    { t: 'Stellenwechsel nach ~2 Jahren', d: 'Der grösste Lohnsprung kommt in der CH meist durch Wechsel (+10–20%), nicht durch interne Erhöhung. Aber: die ersten Jahre Lernkurve nicht zu früh wegwerfen.' }
-  ]},
-  { gruppe: 'Skill-basiertes Nebeneinkommen', items: [
-    { t: 'CAD / Revit / BIM-Freelancing', d: 'Plan-/Modellierarbeit remote für Büros mit Engpässen, 50–100 CHF/h. Erst Nebenbeschäftigungsklausel im Vertrag prüfen.' },
-    { t: 'Nachhilfe / LAP-Vorbereitung', d: 'Lernende in Lüftung/Gebäudetechnik auf die LAP vorbereiten – dein frisches Wissen, 40–70 CHF/h. Deine LAP-Trainer-Apps sind ein perfektes Sprungbrett.' },
-    { t: 'KI-gestützte Mikro-Dienste für KMU', d: 'Offerten-/Berichtstexte, kleine Tools, Foto-Doku für lokale Handwerker. Ergebnisse immer prüfen (Haftung). Echte Arbeit, kein „KI-Kurs"-Hype.' }
-  ]},
-  { gruppe: 'Flexibel / Gig in Zürich', items: [
-    { t: 'Velo-/Foodkurier, Eventarbeit', d: 'Flexible Schichten via Coople/Adecco, ~25–35 CHF/h. Reine Zeit-gegen-Geld-Sache ohne Karrierewert – als kurzfristiger Spar-Booster.' }
-  ]},
-  { gruppe: 'Schlau sparen & investieren (CH)', items: [
-    { t: 'Zuerst Notgroschen + Dauerauftrag', d: '3–6 Monatsausgaben auf ein separates Konto. Am Zahltag automatisch sparen („pay yourself first"). Der grösste Hebel ist die Sparrate, nicht die Rendite.' },
-    { t: 'Säule 3a – der Steuer-Hebel', d: '2026 max. 7258 CHF/Jahr, voll vom steuerbaren Einkommen abziehbar (spart grob 1000–1500 CHF Steuern). Wertschriften-3a (ETF, z.B. finpension/VIAC/frankly) statt Zins-3a.' },
-    { t: 'Günstiger Welt-ETF mit Sparplan (DCA)', d: 'Breit diversifiziert (z.B. FTSE All-World), monatlich gleichbleibend investieren. Schweizer Neobroker mit tiefen Gebühren: Saxo, neon, Yuh, Swissquote.' },
-    { t: 'Krypto/ETH bewusst klein halten', d: 'Nur als kleine Beimischung (Faustregel ≤5–10%), nachdem Notgroschen, 3a und ETF stehen. Klumpenrisiko ist die Hauptgefahr. Seed-Phrase sichern, „garantierte Rendite" = Scam.' }
-  ]}
-];
-
-/* Recherchierte Spar-Tipps fuer den Alltag (Schweiz, 2026) – werden im
-   Geld-Ideen-Tab als eigener Abschnitt "Im Alltag sparen" angezeigt. */
-SK.SAVING_IDEAS = [
-  { gruppe: 'Im Alltag sparen', items: [
-    { t: 'Günstiger einkaufen', d: 'Aldi/Lidl/Denner & Eigenmarken statt Markenprodukte; „Too Good To Go" für vergünstigte Resten. Schnell 100–200 CHF/Monat ohne echten Verzicht.' },
-    { t: 'Selber kochen & Lunch mitnehmen', d: 'Auswärts essen ist der grösste Geld-Frisser. Sonntag vorkochen (Meal-Prep) spart 5–10 CHF/Tag – im Monat 150–250.' },
-    { t: 'Kaffee & Süssgetränke', d: 'Kaffee selber machen statt 4.50 unterwegs (≈100/Monat). Wasser/Sirup statt Energy & Softdrinks.' },
-    { t: 'ÖV clever', d: 'Halbtax + „Gleis 7" (gratis ÖV ab 19 Uhr für unter 25) statt Einzeltickets; kurze Strecken mit dem Velo.' },
-    { t: 'Handy & Internet senken', d: 'Günstig-Anbieter (Yallo, Wingo, Digital Republic, Coop Mobile) statt Premium – oft 20–40 CHF/Monat weniger fürs Gleiche.' },
-    { t: 'Second-Hand & reparieren', d: 'Tutti, Ricardo, Brockenhaus, Marketplace für Kleider/Möbel/Technik. Reparieren statt neu kaufen.' }
-  ]},
-  { gruppe: 'Bessere Gewohnheiten', items: [
-    { t: '24-Stunden-Regel', d: 'Alles über ~50 CHF: einen Tag drüber schlafen. Die meisten Impulskäufe erledigen sich von selbst – nutze die Wunschliste.' },
-    { t: 'Wochen-Bargeld', d: 'Feste Wochensumme abheben und nur die ausgeben – macht das Tagesbudget greifbar und bremst Karten-Impulse.' },
-    { t: 'Cumulus / Supercard & Cashback', d: 'Punkte & Rabatte mitnehmen – aber nur für Sachen, die du sowieso kaufst (kein Kauf wegen Rabatt).' },
-    { t: 'Abos halbjährlich prüfen', d: 'Im Abo-Radar alles durchgehen: Streaming, Gym, Apps. Was du seltener als 1×/Woche nutzt → kündigen.' }
-  ]},
-  { gruppe: 'Grosse Hebel', items: [
-    { t: 'Zahl dich zuerst', d: 'Sparrate sofort am Lohntag wegbuchen (machst du mit den 250ern). Was weg ist, gibst du nicht aus.' },
-    { t: 'Notgroschen zuerst', d: '3–6 Monatsausgaben auf ein separates Konto, bevor du grösser investierst. Schützt vor Schulden bei Pannen.' },
-    { t: 'Fixkosten senken', d: 'Grösster Hebel: Krankenkasse jährlich via Prämienrechner vergleichen (priminfo.admin.ch), Franchise & Modell prüfen – oft 50–150 CHF/Monat.' },
-    { t: 'Schulden/Bussen vor Sparen', d: 'Offene Schulden & Bussen zuerst abbauen – kostet sonst mehr, als Sparen oder Investieren bringt.' }
-  ]}
-];
 
 /* Zahl als CHF-Text mit Schweizer Tausender-Trennzeichen (').
    fmt(1234.5)      -> "1'235"
@@ -164,6 +116,8 @@ SK.ui.aboDaysUntil = function (abo) {
 SK.ui.renderTop = function () {
   const d = new Date();
   document.getElementById('top-month').textContent = MONATE[d.getMonth()] + ' ' + d.getFullYear();
+  const WT = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+  document.getElementById('top-date').textContent = WT[d.getDay()] + ', ' + d.getDate() + '. ' + MONATE[d.getMonth()];
 };
 
 /* Zeile "Nächster Lohn: …" fuers Dashboard (Datum + in X Tagen). */
@@ -178,35 +132,33 @@ SK.ui.paydayLine = function (c) {
 };
 
 /* ---- HEUTE (Dashboard) ---- */
+SK.ui.RING_UMFANG = 609.5; // Umfang des Hero-Rings (2*PI*97)
+
 SK.ui.renderHeute = function () {
   const c = SK.budget.compute(SK.state);
 
-  // Hero: grosse Zahl + Ampel
+  // Hero: grosse Zahl im Ring + Ampelfarbe
   const hero = document.getElementById('hero-card');
   hero.classList.remove('ampel-gruen', 'ampel-gelb', 'ampel-rot');
   hero.classList.add('ampel-' + c.ampel);
   SK.ui.countUp(document.getElementById('hd-heute'), Math.round(c.heuteNochVerfuegbar), 0);
   document.getElementById('hd-tagesbudget').textContent = SK.ui.fmt(c.tagesbudget);
   document.getElementById('hd-payday').innerHTML = SK.ui.paydayLine(c);
-  let pct = c.tagesbudget > 0 ? (c.heuteNochVerfuegbar / c.tagesbudget) * 100 : 0;
-  pct = Math.max(0, Math.min(100, pct));
-  document.getElementById('hd-ampelbar').style.width = pct + '%';
+  let pct = c.tagesbudget > 0 ? (c.heuteNochVerfuegbar / c.tagesbudget) : 0;
+  pct = Math.max(0, Math.min(1, pct));
+  document.getElementById('hd-ring').style.strokeDashoffset = (SK.ui.RING_UMFANG * (1 - pct)).toFixed(1);
 
-  // Tempo-Karte
+  // Status in einer Zeile (Tempo)
   const pace = document.getElementById('pace-card');
   pace.classList.remove('gut', 'knapp', 'warnung');
   pace.classList.add(c.paceStatus);
-  const paceIco = document.getElementById('hd-pace-icon');
   const paceTxt = document.getElementById('hd-pace');
   if (c.paceStatus === 'gut') {
-    paceIco.innerHTML = SK.icon('check');
-    paceTxt.innerHTML = 'Gut unterwegs! Du liegst <strong>' + SK.ui.fmt(Math.abs(c.paceDiff)) + ' CHF</strong> unter dem Soll für heute.';
+    paceTxt.innerHTML = 'Gut unterwegs — <b>' + SK.ui.fmt(Math.abs(c.paceDiff)) + ' CHF</b> unter dem Soll';
   } else if (c.paceStatus === 'knapp') {
-    paceIco.innerHTML = SK.icon('clock');
-    paceTxt.innerHTML = 'Leicht über dem Schnitt – <strong>' + SK.ui.fmt(c.paceDiff) + ' CHF</strong> voraus. Heute etwas bremsen.';
+    paceTxt.innerHTML = 'Leicht über dem Schnitt — <b>' + SK.ui.fmt(c.paceDiff) + ' CHF</b> voraus';
   } else {
-    paceIco.innerHTML = SK.icon('alert');
-    paceTxt.innerHTML = 'Du bist deinem Budget <strong>' + SK.ui.fmt(c.paceDiff) + ' CHF</strong> voraus – heute besser zurückhalten.';
+    paceTxt.innerHTML = '<b>' + SK.ui.fmt(c.paceDiff) + ' CHF</b> über dem Soll — heute besser bremsen';
   }
 
   // Abo-Erinnerung (Verlaengerung in <= 3 Tagen)
@@ -216,7 +168,7 @@ SK.ui.renderHeute = function () {
   const aboCard = document.getElementById('aboalert-card');
   if (bald.length) {
     aboCard.classList.remove('hidden');
-    document.getElementById('hd-aboalert').textContent = bald.join(' · ');
+    document.getElementById('hd-aboalert').textContent = 'Abo-Verlängerung: ' + bald.join(' · ');
   } else {
     aboCard.classList.add('hidden');
   }
@@ -224,45 +176,14 @@ SK.ui.renderHeute = function () {
   // Backup-Erinnerung
   SK.ui.renderBackupHint();
 
-  // Monatszahlen
-  document.getElementById('hd-monat').textContent = SK.ui.fmt(c.spendMonat);
-  document.getElementById('hd-rest').textContent = SK.ui.fmt(c.nochVerfuegbarMonat);
-
   // Hauptsparziel
   SK.ui.renderGoalMini();
-
-  // Smart-Analyse (oben, max 3 Hinweise)
-  SK.ui.renderInsights(document.getElementById('hd-insights'), 3);
-
-  // Hero-Sparkline: Ausgaben der letzten 7 Tage – nur zeigen, wenn es
-  // ueberhaupt Ausgaben gab (sonst wirkt die flache Linie wie ein Strich).
-  const spark7 = SK.ui.last7DaysSpend();
-  document.getElementById('hd-spark').innerHTML = spark7.some(function (v) { return v > 0; })
-    ? SK.charts.spark(spark7, { w: 120, h: 30 }) : '';
-
-  // ETH-Mini
-  SK.ui.renderEthMini();
 
   // Letzte Ausgaben (max 4)
   const letzte = SK.state.entries.slice().sort(SK.ui._sortEntries).slice(0, 4);
   document.getElementById('hd-letzte').innerHTML = letzte.length
     ? letzte.map(SK.ui._entryRow).join('')
-    : '<div class="empty-hint">Noch keine Ausgaben. Tippe auf ＋ um zu starten.</div>';
-};
-
-/* Tages-Ausgaben der letzten 7 Tage (fuer die Hero-Sparkline). */
-SK.ui.last7DaysSpend = function () {
-  const arr = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(); d.setDate(d.getDate() - i);
-    const key = SK.dateKey(d);
-    let s = 0;
-    for (const e of SK.state.entries) {
-      if (e.typ !== 'sparen' && e.datum === key) s += e.betrag;
-    }
-    arr.push(s);
-  }
-  return arr;
+    : '<div class="empty-hint">Noch keine Ausgaben. Tippe auf ➕ um zu starten.</div>';
 };
 
 /* Backup-Erinnerung auf "Heute": sanfter Hinweis, sobald es nennenswerte
@@ -295,34 +216,6 @@ SK.ui.goalSavedThisMonth = function (goal) {
   return s;
 };
 
-/* Smart-Analyse-Hinweise in ein Element schreiben (Stufe 1, offline). */
-SK.ui.renderInsights = function (el, max) {
-  if (!el) return;
-  let list = SK.ai.insights(SK.state);
-  if (max) list = list.slice(0, max);
-  el.innerHTML = list.map(function (i) {
-    const ico = i.tone === 'gut' ? 'check' : (i.tone === 'warn' ? 'alert' : 'lightbulb');
-    return '<div class="insight insight--' + i.tone + '"><span class="insight-ico" data-icon-x="' + ico + '">'
-      + SK.icon(ico) + '</span><span>' + SK.ui.esc(i.text) + '</span></div>';
-  }).join('');
-};
-
-/* Kleine ETH-Karte auf dem Dashboard (liest den Cache). */
-SK.ui.renderEthMini = function () {
-  const c = SK.markets.cached();
-  const cur = (SK.state.settings.cryptoWaehrung || 'chf').toUpperCase();
-  const priceEl = document.getElementById('hd-eth-price');
-  const subEl = document.getElementById('hd-eth-sub');
-  const chgEl = document.getElementById('hd-eth-chg');
-  if (!c) { priceEl.textContent = '—'; subEl.textContent = 'Im Märkte-Tab laden'; chgEl.innerHTML = ''; return; }
-  const eth = c.data.find(function (x) { return x.id === 'ethereum'; }) || c.data[0];
-  if (!eth) return;
-  priceEl.textContent = SK.ui.fmt(eth.current_price, 0) + ' ' + cur;
-  const chg = eth.price_change_percentage_24h_in_currency;
-  chgEl.innerHTML = SK.ui.changeBadge(chg);
-  subEl.textContent = 'Stand: ' + SK.ui.timeAgo(c.ts);
-};
-
 /* Hilfs-Sortierung: neueste Buchung zuerst. */
 SK.ui._sortEntries = function (a, b) {
   if (a.datum !== b.datum) return a.datum < b.datum ? 1 : -1;
@@ -352,15 +245,6 @@ SK.ui.esc = function (s) {
   return String(s).replace(/[&<>"]/g, function (ch) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch];
   });
-};
-
-/* Kleines, gefaerbtes Veraenderungs-Abzeichen (z.B. +1.23% gruen, -2% rot). */
-SK.ui.changeBadge = function (pct) {
-  if (pct == null || isNaN(pct)) return '';
-  const up = pct >= 0;
-  return '<span class="chg-badge ' + (up ? 'pos' : 'neg') + '">'
-    + SK.icon(up ? 'arrowUp' : 'arrowDown', 'ic-sm')
-    + (up ? '+' : '') + pct.toFixed(2) + '%</span>';
 };
 
 /* "vor X Min" – fuer den Aktualitaets-Stempel der Kurse. */
@@ -426,51 +310,60 @@ SK.ui.renderVerlauf = function () {
   ziel.innerHTML = html;
 };
 
-/* ---- ZIELE ---- */
+/* ---- ZIELE ----
+   Zugeklappt zeigt jede Karte nur Name, Balken und Prozent. Erst ein Tipp
+   auf den Kopf klappt Details und Aktions-Knoepfe auf (goalExpanded). */
 SK.ui.renderZiele = function () {
   const heute = new Date();
   const ziel = document.getElementById('zl-liste');
-  if (!SK.state.goals.length) { ziel.innerHTML = '<div class="empty-hint">Noch kein Sparziel. Tippe auf ＋ Ziel.</div>'; return; }
+  if (!SK.state.goals.length) { ziel.innerHTML = '<div class="empty-hint">Noch kein Sparziel. Tippe auf ＋ Neu.</div>'; return; }
 
   ziel.innerHTML = SK.state.goals.map(function (g) {
+    const open = !!SK.ui.goalExpanded[g.id];
     const saved = SK.budget.goalSaved(SK.state, g);
-    const proMonat = SK.budget.goalMonthlyRate(SK.state, g, heute);
+    const kv = function (k, v) { return '<div class="kv"><span>' + k + '</span><b>' + v + '</b></div>'; };
+    let pct, sub, right, rows = '';
+
+    if (g.modus === 'monatlich') {
+      const mSaved = SK.ui.goalSavedThisMonth(g);
+      pct = g.monatlich > 0 ? Math.max(0, Math.min(100, (mSaved / g.monatlich) * 100)) : 0;
+      sub = 'fester Monats-Topf';
+      right = '<span class="g-pct">' + Math.round(pct) + '%</span>';
+      rows = kv('Diesen Monat', SK.ui.fmt(mSaved) + ' / ' + SK.ui.fmt(g.monatlich) + ' CHF')
+           + kv('Gesamt angespart <button class="info-btn" data-info="topf" aria-label="Was heisst das?">i</button>', SK.ui.fmt(saved) + ' CHF');
+    } else {
+      pct = g.ziel > 0 ? Math.max(0, Math.min(100, (saved / g.ziel) * 100)) : 0;
+      const erreicht = saved >= g.ziel && g.ziel > 0;
+      const tageBis = Math.max(0, Math.round((new Date(g.zieldatum + 'T00:00:00') - heute) / 86400000));
+      const d = new Date(g.zieldatum + 'T00:00:00');
+      sub = 'bis ' + d.getDate() + '. ' + MONATE[d.getMonth()];
+      right = erreicht ? '<span class="goal-badge">erreicht</span>' : '<span class="g-pct">' + Math.round(pct) + '%</span>';
+      rows = kv('Gespart', SK.ui.fmt(saved) + ' / ' + SK.ui.fmt(g.ziel) + ' CHF')
+           + kv('Verbleibend', tageBis + ' Tage');
+      if (!erreicht) {
+        const fehlt = SK.budget.goalRemaining(SK.state, g);
+        const proTag = tageBis > 0 ? fehlt / tageBis : fehlt;
+        rows += kv('Nötig pro Monat', SK.ui.fmt(SK.budget.goalMonthlyRate(SK.state, g, heute)) + ' CHF')
+              + kv('Nötig pro Tag', SK.ui.fmt(proTag, 2) + ' CHF');
+      }
+    }
+
     const actions = '<div class="goal-card-actions">'
       + '<button class="btn btn-accent btn-sm" data-act="deposit" data-goal="' + g.id + '">＋ Einzahlen</button>'
       + '<button class="btn btn-ghost btn-sm" data-act="editgoal" data-goal="' + g.id + '">Bearbeiten</button>'
       + '<button class="btn btn-ghost btn-sm" data-act="delgoal" data-goal="' + g.id + '">Löschen</button>'
       + '</div>';
 
-    if (g.modus === 'monatlich') {
-      // Fester Monats-Topf: Fortschritt = was diesen Monat schon drin ist.
-      const mSaved = SK.ui.goalSavedThisMonth(g);
-      const pct = g.monatlich > 0 ? Math.max(0, Math.min(100, (mSaved / g.monatlich) * 100)) : 0;
-      return '<div class="card goal-card" data-goal="' + g.id + '">'
-        + '<div class="row-between"><div class="goal-head-name">' + SK.icon('target', 'ic-pre') + SK.ui.esc(g.name) + '</div>'
-          + '<span class="goal-badge alt">' + SK.ui.fmt(g.monatlich) + ' / Monat</span></div>'
-        + '<div class="progress"><div class="progress-fill" style="width:' + pct + '%"></div></div>'
-        + '<div class="goal-mini-text">Diesen Monat ' + SK.ui.fmt(mSaved) + ' / ' + SK.ui.fmt(g.monatlich) + ' CHF</div>'
-        + '<div class="goal-meta"><span>' + SK.icon('coins', 'ic-sm') + ' gesamt angespart: <b>' + SK.ui.fmt(saved) + '</b> CHF</span>'
-          + '<span>fester Spar-Topf ohne Enddatum</span></div>'
-        + actions + '</div>';
-    }
-
-    // Klassisches Ziel mit Datum.
-    const pct = g.ziel > 0 ? Math.max(0, Math.min(100, (saved / g.ziel) * 100)) : 0;
-    const erreicht = saved >= g.ziel && g.ziel > 0;
-    const tageBis = Math.max(0, Math.round((new Date(g.zieldatum + 'T00:00:00') - heute) / 86400000));
-    const fehlt = SK.budget.goalRemaining(SK.state, g);
-    const proTag = tageBis > 0 ? fehlt / tageBis : fehlt;
-    return '<div class="card goal-card' + (erreicht ? ' done' : '') + '" data-goal="' + g.id + '">'
-      + '<div class="row-between"><div class="goal-head-name">' + SK.icon('target', 'ic-pre') + SK.ui.esc(g.name) + '</div>'
-        + (erreicht ? '<span class="goal-badge">erreicht</span>' : '<span class="goal-mini-pct">' + Math.round(pct) + '%</span>') + '</div>'
-      + '<div class="progress"><div class="progress-fill" style="width:' + pct + '%"></div></div>'
-      + '<div class="goal-mini-text">' + SK.ui.fmt(saved) + ' / ' + SK.ui.fmt(g.ziel) + ' CHF</div>'
-      + '<div class="goal-meta">'
-        + '<span>' + SK.icon('clock', 'ic-sm') + ' noch <b>' + tageBis + '</b> Tage</span>'
-        + (erreicht ? '' : '<span>pro Monat: <b>' + SK.ui.fmt(proMonat) + '</b> CHF</span><span>pro Tag: <b>' + SK.ui.fmt(proTag, 2) + '</b> CHF</span>')
+    return '<div class="card goal-card' + (open ? ' open' : '') + '" data-goal="' + g.id + '">'
+      + '<div class="goal-head" data-act="togglegoal" data-goal="' + g.id + '">'
+        + '<span class="g-ico">' + SK.icon('target') + '</span>'
+        + '<div class="g-t"><b>' + SK.ui.esc(g.name) + '</b><small>' + sub + '</small></div>'
+        + right
+        + '<span class="chev">' + SK.icon('chevron') + '</span>'
       + '</div>'
-      + actions + '</div>';
+      + '<div class="progress"><div class="progress-fill" style="width:' + pct + '%"></div></div>'
+      + (open ? '<div class="goal-detail">' + rows + actions + '</div>' : '')
+    + '</div>';
   }).join('');
 };
 
@@ -707,23 +600,16 @@ SK.ui.renderEinstellungen = function () {
   rateInput.disabled = !schuldenAktiv;
   document.getElementById('se-schuldenrate-wrap').style.opacity = schuldenAktiv ? '1' : '0.45';
 
-  // KI-Coach
-  const aiAktiv = SK.state.settings.aiAktiv;
-  document.getElementById('se-aiswitch').checked = aiAktiv;
-  document.getElementById('se-aikey').value = SK.state.settings.aiKey || '';
-  document.getElementById('se-aimodel').value = SK.state.settings.aiModel || 'claude-opus-4-8';
-  document.getElementById('se-aikey-wrap').style.opacity = aiAktiv ? '1' : '0.45';
+  // Synchronisation (eigene Datei js/sync.js)
+  SK.sync.renderSettings();
 
-  // Märkte
-  document.getElementById('se-cryptocur').value = SK.state.settings.cryptoWaehrung || 'chf';
-
-  document.getElementById('se-version').textContent = '3.0';
+  document.getElementById('se-version').textContent = '4.0';
 
   // Letztes Backup anzeigen (Erinnerung gegen Datenverlust)
   const bi = document.getElementById('se-backupinfo');
   if (bi) {
     const last = SK.state.meta && SK.state.meta.lastBackupAt;
-    bi.textContent = last ? ('Letztes Backup: ' + SK.ui.dayLabel(last)) : 'Noch nie ein Backup gemacht.';
+    bi.textContent = last ? SK.ui.dayLabel(last) : 'noch nie';
   }
 
   document.getElementById('se-kategorien').innerHTML = SK.state.categories.map(function (c) {
@@ -753,100 +639,7 @@ SK.ui.render = function () {
   SK.ui.renderFerien();
   SK.ui.renderStatistik();
   SK.ui.renderListen();
-  SK.ui.renderMarkets();      // zeigt zwischengespeicherte Kurse (Abruf passt beim Tab-Wechsel)
-  SK.ui.renderCoach();
-  SK.ui.renderIdeen();
   SK.ui.renderEinstellungen();
-};
-
-/* ============ D) NEUE BILDSCHIRME (v2) ============ */
-
-/* ---- MÄRKTE (Krypto) ----
-   Zeigt die zuletzt gespeicherten Kurse. Der eigentliche Live-Abruf passiert
-   in app.js beim Wechsel in den Tab (SK.markets.load). */
-SK.ui.renderMarkets = function () {
-  const c = SK.markets.cached();
-  const cur = (SK.state.settings.cryptoWaehrung || 'chf').toUpperCase();
-  const stand = document.getElementById('mk-stand');
-  const liste = document.getElementById('mk-liste');
-  if (!c) {
-    stand.textContent = 'Live-Kurse von CoinGecko · keine Anlageberatung';
-    liste.innerHTML = '<div class="empty-hint">Noch keine Kurse geladen. Tippe oben auf das Aktualisieren-Symbol (Internet nötig).</div>';
-    return;
-  }
-  stand.textContent = 'Stand: ' + SK.ui.timeAgo(c.ts) + ' · Quelle CoinGecko · keine Anlageberatung';
-  liste.innerHTML = c.data.map(function (coin) {
-    const chg24 = coin.price_change_percentage_24h_in_currency;
-    const chg7 = coin.price_change_percentage_7d_in_currency;
-    const chg30 = coin.price_change_percentage_30d_in_currency;
-    const spark = (coin.sparkline_in_7d && coin.sparkline_in_7d.price)
-      ? SK.charts.spark(coin.sparkline_in_7d.price, { w: 120, h: 36 }) : '';
-    const ath = coin.ath ? ('ATH ' + SK.ui.fmt(coin.ath, 0) + ' ' + cur + ' (' + (coin.ath_change_percentage != null ? coin.ath_change_percentage.toFixed(0) + '%' : '–') + ')') : '';
-    return '<div class="card coin-card">'
-      + '<div class="coin-top">'
-        + '<div class="coin-id"><div class="entry-ico" style="color:var(--gold)">' + SK.icon('coin') + '</div>'
-          + '<div><div class="coin-name">' + SK.ui.esc(coin.name) + '</div><div class="cap">' + SK.ui.esc((coin.symbol || '').toUpperCase()) + '</div></div></div>'
-        + '<div class="coin-price"><div class="num">' + SK.ui.fmt(coin.current_price, coin.current_price < 5 ? 2 : 0) + ' ' + cur + '</div>'
-          + SK.ui.changeBadge(chg24) + '</div>'
-      + '</div>'
-      + '<div class="coin-spark">' + spark + '</div>'
-      + '<div class="coin-meta">'
-        + '<span>7T ' + SK.ui.changeBadge(chg7) + '</span>'
-        + '<span>30T ' + SK.ui.changeBadge(chg30) + '</span>'
-        + (ath ? '<span class="cap">' + ath + '</span>' : '')
-      + '</div></div>';
-  }).join('');
-};
-
-/* ---- KI-COACH ---- */
-SK.ui.renderCoach = function () {
-  SK.ui.renderInsights(document.getElementById('co-insights'));
-  const body = document.getElementById('co-ai-body');
-  if (!SK.ai.available()) {
-    delete body.dataset.loaded;
-    body.innerHTML = '<p class="muted">Der echte KI-Coach ist aus. Schalte ihn in den Einstellungen ein (eigener Anthropic-API-Schlüssel nötig). Die Smart-Analyse oben funktioniert auch ohne.</p>'
-      + '<button class="btn btn-ghost btn-block" data-view="einstellungen"><span class="ic-pre" data-icon="key"></span>KI-Coach einrichten</button>';
-    SK.app.injectStaticIcons(body);
-    return;
-  }
-  // aktiv: Knopf zum Analyse holen (Ergebnis wird von app.js eingesetzt)
-  if (!body.dataset.loaded) {
-    body.innerHTML = '<button class="btn btn-accent btn-block" data-act="analyze"><span class="ic-pre" data-icon="ai"></span>Persönliche Analyse holen</button>'
-      + '<div class="ai-out" id="co-out"></div>';
-    body.dataset.loaded = '1';
-    SK.app.injectStaticIcons(body);
-  }
-};
-
-/* Baut eine Liste von Ideen-Gruppen ([{gruppe, items:[{t,d}]}]) als HTML. */
-SK.ui._ideaGroups = function (arr) {
-  return arr.map(function (cat) {
-    return '<div class="idea-cat"><div class="label">' + SK.ui.esc(cat.gruppe) + '</div>'
-      + cat.items.map(function (it) {
-        return '<div class="idea"><div class="idea-title">' + SK.ui.esc(it.t) + '</div><div class="idea-desc">' + SK.ui.esc(it.d) + '</div></div>';
-      }).join('') + '</div>';
-  }).join('');
-};
-
-/* ---- GELD-IDEEN ---- */
-SK.ui.renderIdeen = function () {
-  // statische, recherchierte Listen (verdienen + im Alltag sparen)
-  document.getElementById('id-static').innerHTML = SK.ui._ideaGroups(SK.MONEY_IDEAS);
-  const sav = document.getElementById('id-saving');
-  if (sav) sav.innerHTML = SK.ui._ideaGroups(SK.SAVING_IDEAS);
-
-  // KI-Idee des Tages
-  const body = document.getElementById('id-ai-body');
-  if (!SK.ai.available()) {
-    body.innerHTML = '<p class="muted">Für eine täglich frische Idee von Claude den KI-Coach in den Einstellungen einschalten. Die bewährten Wege unten gibt es auch ohne.</p>';
-    return;
-  }
-  const mr = SK.state.moneyResearch;
-  if (mr && mr.text) {
-    body.innerHTML = '<div class="ai-out">' + SK.ui.aiText(mr.text) + '</div><div class="cap">Stand: ' + SK.ui.esc(mr.datum) + '</div>';
-  } else {
-    body.innerHTML = '<p class="muted">Tippe oben auf das Aktualisieren-Symbol für die heutige Idee.</p>';
-  }
 };
 
 /* ---- LISTEN / WUNSCHLISTE ---- */
@@ -931,7 +724,6 @@ SK.ui._ferienSetup = function () {
       return '<option value="' + g.id + '" data-saved="' + saved + '">' + SK.ui.esc(g.name) + ' (' + SK.ui.fmt(saved) + ' CHF)</option>';
     })).join('');
   return '<div class="card fe-setup">'
-    + '<p class="muted">Führe im Urlaub ein <strong>getrenntes</strong> Tagesbudget. Es beeinflusst dein normales Monatsbudget nicht – eigene Ausgaben, eigener Topf.</p>'
     + '<label class="field"><span>Reiseziel / Name (optional)</span><input type="text" id="fe-name" maxlength="30" placeholder="z.B. Kroatien 2026"></label>'
     + '<label class="field"><span>Ferienbudget gesamt (CHF)</span><input type="number" id="fe-budget" inputmode="decimal" min="0" step="50" placeholder="z.B. 1000"></label>'
     + '<div class="fe-row2">'
@@ -1079,16 +871,43 @@ SK.ui.renderFerien = function () {
   SK.app.injectStaticIcons(body);
 };
 
-/* Wandelt KI-Text sicher in HTML um (escapen, Zeilenumbrüche, einfache Aufzählungen). */
-SK.ui.aiText = function (txt) {
-  const safe = SK.ui.esc(txt);
-  return safe.split(/\n{2,}/).map(function (para) {
-    const lines = para.split('\n');
-    const isList = lines.every(function (l) { return /^\s*[-*•]/.test(l) || l.trim() === ''; });
-    if (isList) {
-      return '<ul>' + lines.filter(function (l) { return l.trim(); })
-        .map(function (l) { return '<li>' + l.replace(/^\s*[-*•]\s?/, '') + '</li>'; }).join('') + '</ul>';
-    }
-    return '<p>' + para.replace(/\n/g, '<br>') + '</p>';
-  }).join('');
+/* ============ INFO-SHEET (Erklaerungen auf Abruf) ============
+   Jeder kleine (i)-Knopf in der App traegt ein data-info="schluessel".
+   Ein Tipp darauf oeffnet unten ein kleines Blatt mit der Erklaerung –
+   so bleibt die Oberflaeche frei von Erklaer-Texten. */
+
+SK.ui.INFO = {
+  tagesbudget: ['Tagesbudget', 'Dein verfügbares Monatsgeld (Lohn − Fixkosten − Sparen − optionale Schulden-Rate), verteilt auf die restlichen Tage bis zum nächsten Lohn. Gibst du heute weniger aus, steigt dein Budget für morgen – gibst du mehr aus, sinkt es.'],
+  tagesrest: ['Tagesrest sichern', 'Verschiebt das Geld, das dir heute noch übrig bleibt, in dein Hauptsparziel. So wird aus einem sparsamen Tag direkt sichtbarer Fortschritt.'],
+  backup: ['Backup', 'Deine Daten liegen nur auf diesem Gerät. Das Handy kann den Speicher einer Web-App bei Platzmangel von selbst leeren – lade darum ab und zu ein Backup herunter und lege es sicher ab.'],
+  kalender: ['Kalender-Farben', 'Jeder Tag wird nach deinen Ausgaben eingefärbt: dunkelgrün = sehr sparsam, hellgrün = im Plan, hellrot = über dem Tages-Soll, dunkelrot = weit darüber.'],
+  monatsverlauf: ['Monatsverlauf', 'Die orange gestrichelte Linie zeigt das gleichmässige Soll über den Monat. Die grüne Linie zeigt, was du tatsächlich ausgegeben hast. Bleibt Grün unter Orange, bist du im Plan.'],
+  streak: ['Streak', 'So viele Tage in Folge bist du unter deinem Tagesbudget geblieben. Nicht abreissen lassen!'],
+  hochrechnung: ['Hochrechnung', 'Wenn du im aktuellen Tempo weiter ausgibst: so viel wärst du am Ende des Monats los. Grün umrandet = im Plan, rot = über dem Budget.'],
+  ziele: ['Sparziele', 'Zwei Arten: ein Ziel mit Datum (z.B. Ferien – die App rechnet aus, wie viel du pro Monat zurücklegen musst) und ein fester Monats-Topf (z.B. 250 CHF fürs Motorrad, ohne Enddatum). Beide werden vorab von deinem verfügbaren Geld reserviert.'],
+  topf: ['Gesamt angespart', 'Alles, was du seit dem Anlegen dieses Topfs eingezahlt hast – über alle Monate hinweg.'],
+  abos: ['Abo-Radar', 'Alle wiederkehrenden Kosten auf einen Blick. Mit Verlängerungstag erinnert dich die App 3 Tage vorher – der beste Moment zum Kündigen. Der Schalter rechts markiert ein Abo als gekündigt.'],
+  schulden: ['Schulden & Bussen', 'Ein getrennter Topf für einmalige grössere Posten (Werkstatt, Busse). Teilzahlungen erfassen, Fortschritt sehen – dein Tagesbudget wird davon NICHT verfälscht. Nur die optionale monatliche Rate (Einstellungen) wird vorab reserviert.'],
+  ferien: ['Ferienmodus', 'Ein komplett getrennter Reise-Topf mit eigenem Tagesbudget – gleiche Logik wie sonst, beeinflusst dein normales Monatsbudget aber nicht. Mit optionaler Fremdwährung und Rückblick nach Kategorien.'],
+  listen: ['Listen', 'Freie Listen, z.B. eine Wunschliste mit Preisen. Rein informativ – fliesst nicht ins Budget. Die Summe zeigt dir, was du noch ansparen musst.'],
+  fixkosten: ['Fixkosten', 'Miete, Krankenkasse, Handy – alles, was jeden Monat fix abgeht, bevor du frei ausgeben kannst. Wird vom Lohn abgezogen, bevor die App dein Tagesbudget berechnet.'],
+  monatsbudget: ['Festes Monatsbudget', 'Lege selbst fest, wie viel du pro Monat für den Alltag ausgeben willst. Leer lassen = die App rechnet automatisch: Lohn − Fixkosten − Sparen.'],
+  abosfix: ['Abos zu Fixkosten zählen', 'Nur einschalten, wenn deine eingetragenen Fixkosten die Abos noch NICHT enthalten – sonst werden sie doppelt gezählt.'],
+  schuldenrate: ['Schulden-Rate', 'Zieht jeden Monat einen festen Betrag für den Schuldenabbau vom verfügbaren Geld ab – genau wie die Sparrate. Einzelne Zahlungen verfälschen dein Tagesbudget so nicht.'],
+  sync: ['Synchronisation', 'Gleicht deine Daten automatisch zwischen Laptop und Handy ab – über ein privates GitHub-Repository, das nur du sehen kannst. Nutze die Geräte nacheinander (nicht gleichzeitig): es gewinnt immer der neueste Stand.'],
+  synctoken: ['GitHub-Token', 'Ein Zugangsschlüssel, den du auf github.com erstellst (Settings → Developer settings → Fine-grained tokens). Er braucht nur Lese/Schreib-Zugriff auf dein Daten-Repository und bleibt auf diesem Gerät gespeichert. Achtung: auch ein Backup-Export enthält ihn.']
+};
+
+SK.ui.openInfo = function (key) {
+  const info = SK.ui.INFO[key];
+  if (!info) return;
+  document.getElementById('info-title-text').textContent = info[0];
+  document.getElementById('info-text').textContent = info[1];
+  document.getElementById('info-backdrop').classList.add('show');
+  document.getElementById('info-sheet').classList.add('show');
+};
+
+SK.ui.closeInfo = function () {
+  document.getElementById('info-backdrop').classList.remove('show');
+  document.getElementById('info-sheet').classList.remove('show');
 };

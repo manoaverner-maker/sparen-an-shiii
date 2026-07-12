@@ -22,8 +22,10 @@ SK.app.editId = null;   // wenn gerade eine Ausgabe bearbeitet wird: deren id
    --------------------------------------------------------------------- */
 SK.app.refresh = function () {
   SK.app.updateTodayLog();
+  SK.state.meta.updatedAt = Date.now();  // fuer den Sync: wann wurde zuletzt echt etwas geaendert?
   SK.storage.save();
   SK.ui.render();
+  SK.sync.schedulePush();                // Aenderung (verzoegert) zu GitHub hochladen
 };
 
 /* =====================================================================
@@ -38,6 +40,7 @@ SK.app.init = function () {
   SK.app.bindEvents();        // auf Klicks reagieren
   SK.ui.render();             // erstes Zeichnen
   SK.app.registerSW();        // Offline-Service-Worker
+  SK.sync.init();             // GitHub-Sync: neuesten Stand holen (wenn eingerichtet)
 };
 
 /* =====================================================================
@@ -73,6 +76,7 @@ SK.app.runAutoSavings = function () {
     added = true;
   });
   m.autoSavedPeriods.push(cur.end);
+  if (added) m.updatedAt = Date.now();
   return added;
 };
 
@@ -134,8 +138,9 @@ SK.app.handleRollover = function () {
 /* =====================================================================
    NAVIGATION
    ===================================================================== */
-/* Views, die unten als eigener Tab vorkommen. Alles andere liegt unter "Mehr". */
-SK.app.BOTTOM_VIEWS = ['heute', 'verlauf', 'statistik', 'markets', 'mehr'];
+/* Views, die unten als eigener Tab vorkommen. Alles andere liegt unter "Mehr".
+   Die Statistik ist der zweite Schalter IM Verlauf -> gleicher Tab. */
+SK.app.BOTTOM_VIEWS = ['heute', 'verlauf', 'ziele', 'mehr'];
 
 /* Screens mit eigenem oberen Hinzufuegen-Knopf -> der runde +Knopf (FAB)
    wird dort ausgeblendet, damit es pro Screen nur EINEN gibt. */
@@ -150,10 +155,12 @@ SK.app.switchView = function (view) {
   document.querySelectorAll('.side-link').forEach(function (b) {
     b.classList.toggle('is-active', b.dataset.view === view);
   });
-  // Untere Leiste (mobil): Treffer markieren, sonst "Mehr" hervorheben
+  // Untere Leiste (mobil): Treffer markieren, sonst "Mehr" hervorheben.
+  // Statistik liegt im Verlauf-Tab (Segment-Schalter).
+  const tabView = (view === 'statistik') ? 'verlauf' : view;
   let matched = false;
   document.querySelectorAll('.tab').forEach(function (b) {
-    const on = b.dataset.view === view; if (on) matched = true;
+    const on = b.dataset.view === tabView; if (on) matched = true;
     b.classList.toggle('is-active', on);
   });
   if (!matched) {
@@ -168,9 +175,6 @@ SK.app.switchView = function (view) {
 
   // Tab-spezifische Aktionen
   if (view === 'statistik') SK.ui.renderStatistik();
-  if (view === 'markets') SK.app.loadMarkets();
-  if (view === 'coach') SK.ui.renderCoach();
-  if (view === 'ideen') SK.app.loadDailyIdea();
   if (view === 'ferien') SK.ui.renderFerien();
 };
 
@@ -227,7 +231,7 @@ SK.app.saveEntry = function () {
 
 /* kleine Bestaetigungs-Animation auf der grossen Zahl */
 SK.app.pulseHero = function () {
-  const h = document.querySelector('.hero-amount');
+  const h = document.querySelector('.ring-num') || document.querySelector('.hero-amount');
   if (!h) return;
   h.classList.remove('pulse'); void h.offsetWidth; h.classList.add('pulse');
 };
@@ -478,88 +482,8 @@ SK.app.openPaymentModal = function (debtId) {
 };
 
 /* =====================================================================
-   MÄRKTE / KI / LISTEN (v2)
+   LISTEN
    ===================================================================== */
-
-/* Holt aktuelle Krypto-Kurse und zeichnet den Maerkte-Tab neu.
-   Faellt bei Fehler/Funkloch auf die zwischengespeicherten Werte zurueck. */
-SK.app.loadingMarkets = false;
-SK.app.loadMarkets = async function () {
-  if (SK.app.loadingMarkets) return;
-  SK.app.loadingMarkets = true;
-  const refreshBtn = document.getElementById('btn-market-refresh');
-  if (refreshBtn) refreshBtn.classList.add('spinning');
-  try {
-    await SK.markets.load();
-    SK.ui.renderMarkets();
-    SK.ui.renderEthMini();
-  } catch (e) {
-    SK.ui.renderMarkets(); // zeigt Cache
-    if (!SK.markets.cached()) SK.ui.toast('Kurse nicht erreichbar (offline?)', true);
-  } finally {
-    SK.app.loadingMarkets = false;
-    if (refreshBtn) refreshBtn.classList.remove('spinning');
-  }
-};
-
-/* Holt die "Idee des Tages" von Claude – aber hoechstens einmal pro Tag
-   automatisch (gecacht in state.moneyResearch). force=true erzwingt neu. */
-SK.app.loadingIdea = false;
-SK.app.loadDailyIdea = async function (force) {
-  if (!SK.ai.available()) { SK.ui.renderIdeen(); return; }
-  const heute = SK.dateKey();
-  if (!force && SK.state.moneyResearch && SK.state.moneyResearch.datum === heute && SK.state.moneyResearch.text) {
-    SK.ui.renderIdeen(); return;
-  }
-  if (SK.app.loadingIdea) return;          // schon eine Anfrage unterwegs
-  SK.app.loadingIdea = true;
-  const refreshBtn = document.getElementById('btn-idea-refresh');
-  if (refreshBtn) refreshBtn.classList.add('spinning');
-  const body = document.getElementById('id-ai-body');
-  if (body) body.innerHTML = '<div class="skeleton" style="height:80px"></div>';
-  try {
-    const text = await SK.ai.idea();
-    SK.state.moneyResearch = { datum: heute, text: text };
-    SK.storage.save();
-    SK.ui.renderIdeen();
-  } catch (e) {
-    if (body) body.innerHTML = '<p class="ai-error">KI-Idee nicht geladen: ' + SK.ui.esc(e.message) + '</p>';
-  } finally {
-    SK.app.loadingIdea = false;
-    if (refreshBtn) refreshBtn.classList.remove('spinning');
-  }
-};
-
-/* Holt eine persoenliche Ausgaben-Analyse von Claude (Knopf im KI-Coach). */
-SK.app.analyzing = false;
-SK.app.analyzeSpending = async function () {
-  if (SK.app.analyzing) return;            // schon eine Analyse unterwegs
-  SK.app.analyzing = true;
-  const out = document.getElementById('co-out');
-  if (out) out.innerHTML = '<div class="skeleton" style="height:90px"></div>';
-  try {
-    const text = await SK.ai.analyze();
-    if (out) out.innerHTML = '<div class="ai-out">' + SK.ui.aiText(text) + '</div>';
-  } catch (e) {
-    if (out) out.innerHTML = '<p class="ai-error">Analyse fehlgeschlagen: ' + SK.ui.esc(e.message) + '</p>';
-  } finally {
-    SK.app.analyzing = false;
-  }
-};
-
-/* Testet den hinterlegten API-Schluessel mit einer winzigen Anfrage. */
-SK.app.testAiKey = async function () {
-  const out = document.getElementById('se-aitest-out');
-  out.textContent = 'Teste …';
-  try {
-    await SK.ai.ask('Antworte mit genau dem Wort: OK', 'Test', 16);
-    out.innerHTML = SK.icon('check', 'ic-sm') + ' Schlüssel funktioniert.';
-    out.style.color = 'var(--green)';
-  } catch (e) {
-    out.innerHTML = SK.icon('alert', 'ic-sm') + ' ' + SK.ui.esc(e.message);
-    out.style.color = 'var(--red)';
-  }
-};
 
 /* Neue Liste anlegen. */
 SK.app.addList = function () {
@@ -650,7 +574,10 @@ SK.app.bindEvents = function () {
   // Erfassen oeffnen
   document.getElementById('fab-add').addEventListener('click', function () { SK.app.openSheet(null); });
   document.getElementById('btn-add-desktop').addEventListener('click', function () { SK.app.openSheet(null); });
-  document.getElementById('btn-settings').addEventListener('click', function () { SK.app.switchView('einstellungen'); });
+
+  // Info-Sheet (die kleinen i-Knoepfe) schliessen
+  document.getElementById('info-close').addEventListener('click', SK.ui.closeInfo);
+  document.getElementById('info-backdrop').addEventListener('click', SK.ui.closeInfo);
 
   // Erfassen-Sheet
   document.getElementById('er-save').addEventListener('click', SK.app.saveEntry);
@@ -674,10 +601,6 @@ SK.app.bindEvents = function () {
     SK.ui.debtArchiveOpen = !SK.ui.debtArchiveOpen; SK.ui.renderSchulden();
   });
 
-  // Märkte / Geld-Ideen aktualisieren
-  document.getElementById('btn-market-refresh').addEventListener('click', SK.app.loadMarkets);
-  document.getElementById('btn-idea-refresh').addEventListener('click', function () { SK.app.loadDailyIdea(true); });
-
   // Einstellungen
   document.getElementById('se-lohn').addEventListener('change', function (e) {
     SK.state.settings.lohn = Math.max(0, parseFloat(e.target.value) || 0); SK.app.refresh();
@@ -697,22 +620,8 @@ SK.app.bindEvents = function () {
   document.getElementById('se-schuldenrate').addEventListener('change', function (e) {
     SK.state.settings.schuldenRate = Math.max(0, parseFloat(e.target.value) || 0); SK.app.refresh();
   });
-  // KI-Coach-Einstellungen
-  document.getElementById('se-aiswitch').addEventListener('change', function (e) {
-    SK.state.settings.aiAktiv = e.target.checked; SK.app.refresh();
-  });
-  document.getElementById('se-aikey').addEventListener('change', function (e) {
-    SK.state.settings.aiKey = e.target.value.trim(); SK.storage.save();
-  });
-  document.getElementById('se-aimodel').addEventListener('change', function (e) {
-    SK.state.settings.aiModel = e.target.value; SK.storage.save();
-  });
-  document.getElementById('se-aitest').addEventListener('click', SK.app.testAiKey);
-  document.getElementById('se-cryptocur').addEventListener('change', function (e) {
-    SK.state.settings.cryptoWaehrung = e.target.value;
-    SK.state.cryptoCache = { ts: 0, data: null }; // Waehrung gewechselt -> Cache verwerfen
-    SK.storage.save(); SK.app.refresh();
-  });
+  // Synchronisation (eigene Datei js/sync.js)
+  SK.sync.bind();
 
   document.getElementById('se-addcat').addEventListener('click', SK.app.addCategory);
   document.getElementById('se-newcat').addEventListener('keydown', function (e) { if (e.key === 'Enter') SK.app.addCategory(); });
@@ -730,6 +639,11 @@ SK.app.bindEvents = function () {
    einen Listener haengen. */
 SK.app.onClick = function (ev) {
   const t = ev.target;
+
+  // 0) kleine i-Knoepfe: Erklaerung anzeigen (VOR allem anderen, weil sie
+  //    ueberall verschachtelt vorkommen koennen)
+  const info = t.closest('.info-btn');
+  if (info) { ev.preventDefault(); ev.stopPropagation(); SK.ui.openInfo(info.dataset.info); return; }
 
   // 1) Kategorie-Chip im Erfassen-Sheet
   const chip = t.closest('#er-kategorien .chip');
@@ -757,6 +671,9 @@ SK.app.onClick = function (ev) {
     SK.app.refresh(); SK.ui.toast('Gelöscht');
   } else if (a === 'deposit') {
     SK.app.openDepositModal(act.dataset.goal);
+  } else if (a === 'togglegoal') {
+    SK.ui.goalExpanded[act.dataset.goal] = !SK.ui.goalExpanded[act.dataset.goal];
+    SK.ui.renderZiele();
   } else if (a === 'editgoal') {
     SK.app.openGoalModal(SK.state.goals.find(function (g) { return g.id === act.dataset.goal; }));
   } else if (a === 'delgoal') {
@@ -792,10 +709,6 @@ SK.app.onClick = function (ev) {
   } else if (a === 'delpay') {
     const d = SK.state.debts.find(function (x) { return x.id === act.dataset.debt; });
     if (d) { d.zahlungen = (d.zahlungen || []).filter(function (z) { return z.id !== act.dataset.pay; }); SK.app.refresh(); SK.ui.toast('Zahlung gelöscht'); }
-
-  /* ---- KI-Coach ---- */
-  } else if (a === 'analyze') {
-    SK.app.analyzeSpending();
 
   /* ---- Listen / Wunschliste ---- */
   } else if (a === 'listadd') {
