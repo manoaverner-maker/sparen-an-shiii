@@ -879,6 +879,7 @@ SK.ui.renderFerien = function () {
 SK.ui.INFO = {
   tagesbudget: ['Tagesbudget', 'Dein verfügbares Monatsgeld (Lohn − Fixkosten − Sparen − optionale Schulden-Rate), verteilt auf die restlichen Tage bis zum nächsten Lohn. Gibst du heute weniger aus, steigt dein Budget für morgen – gibst du mehr aus, sinkt es.'],
   tagesrest: ['Tagesrest sichern', 'Verschiebt das Geld, das dir heute noch übrig bleibt, in dein Hauptsparziel. So wird aus einem sparsamen Tag direkt sichtbarer Fortschritt.'],
+  anpassen: ['Betrag anpassen', 'Für den Fall, dass die App und dein Konto auseinanderliegen (z.B. eine vergessene Ausgabe): Trage ein, wie viel du wirklich noch zum Ausgeben hast. Die Differenz wird als Korrektur im Verlauf eingetragen und auf die restlichen Tage bis zum nächsten Lohn verteilt – dein Tagesbudget stimmt danach sofort wieder.'],
   backup: ['Backup', 'Deine Daten liegen nur auf diesem Gerät. Das Handy kann den Speicher einer Web-App bei Platzmangel von selbst leeren – lade darum ab und zu ein Backup herunter und lege es sicher ab.'],
   kalender: ['Kalender-Farben', 'Jeder Tag wird nach deinen Ausgaben eingefärbt: dunkelgrün = sehr sparsam, hellgrün = im Plan, hellrot = über dem Tages-Soll, dunkelrot = weit darüber.'],
   monatsverlauf: ['Monatsverlauf', 'Die orange gestrichelte Linie zeigt das gleichmässige Soll über den Monat. Die grüne Linie zeigt, was du tatsächlich ausgegeben hast. Bleibt Grün unter Orange, bist du im Plan.'],

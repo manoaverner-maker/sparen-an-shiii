@@ -261,6 +261,8 @@ body.no-fab .fab { display: none; }
 .hero-payday { margin-top: 6px; font-size: 13px; color: var(--ink-3); }
 .hero-payday .ic { width: 15px; height: 15px; margin-right: 5px; vertical-align: -3px; }
 .hero-income { margin-top: 18px; }
+.hero-adjust-row { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
+.hero-adjust-row .link-btn { font-size: 13px; padding: 2px; }
 
 /* Status-Zeile (Tempo / Abo-Erinnerung) */
 .status {

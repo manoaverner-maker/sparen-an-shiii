@@ -16,24 +16,26 @@
    damit der Browser die neuen Dateien laedt statt der alten.
    ===================================================================== */
 
-const CACHE_NAME = 'sparkurs-v15';
+const CACHE_NAME = 'sparkurs-v16';
 
 /* Alle Dateien, die fuer den Offline-Betrieb gebraucht werden.
    Pfade relativ ("./"), damit es auch in einem Unterordner (GitHub Pages)
-   funktioniert. */
+   funktioniert. Die "?v=" an CSS/JS muss zum Stand in index.html passen
+   (siehe README "Nach Code-Aenderungen") – sonst bleibt beim ersten
+   Offline-Start ein Cache-Treffer aus. */
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './css/styles.css',
-  './js/defaults.js',
-  './js/icons.js',
-  './js/storage.js',
-  './js/budget.js',
-  './js/charts.js',
-  './js/sync.js',
-  './js/ui.js',
-  './js/app.js',
+  './css/styles.css?v=6',
+  './js/defaults.js?v=1',
+  './js/icons.js?v=1',
+  './js/storage.js?v=1',
+  './js/budget.js?v=1',
+  './js/charts.js?v=1',
+  './js/sync.js?v=1',
+  './js/ui.js?v=1',
+  './js/app.js?v=1',
   './assets/logo.svg',
   './assets/favicon.svg',
   './assets/icon-192.png',

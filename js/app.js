@@ -272,6 +272,49 @@ SK.app.openIncomeModal = function () {
   ]);
 };
 
+/* "Betrag anpassen": der User gibt direkt ein, wie viel er bis zum
+   naechsten Lohn wirklich noch zum Ausgeben hat (z.B. nach einem Blick
+   aufs Konto). Die App traegt die Differenz als nachvollziehbare Korrektur
+   im Verlauf ein (Einnahme bei mehr, Ausgabe bei weniger) und rechnet das
+   Tagesbudget danach ganz normal ueber die Resttage neu – ohne dass die
+   Kern-Rechnung in budget.js angefasst werden muss. */
+SK.app.openAdjustModal = function () {
+  const c = SK.budget.compute(SK.state);
+  const aktuell = Math.round(c.heuteNochVerfuegbar * 100) / 100;
+  const body =
+    '<p class="muted">Die App zeigt dir aktuell <strong>' + SK.ui.fmt(aktuell) + ' CHF</strong> heute noch verfügbar.</p>'
+    + '<label class="field"><span>Wie viel hast du wirklich noch zum Ausgeben (bis zum nächsten Lohn)?</span>'
+      + '<input type="number" id="m-betrag" inputmode="decimal" placeholder="' + aktuell + '" step="0.05"></label>'
+    + '<p class="cap">Die Differenz wird als Anpassung im Verlauf eingetragen – dein Tagesbudget stimmt danach sofort wieder, verteilt auf die restlichen Tage.</p>';
+  SK.app.openModal('Betrag anpassen', body, [
+    { label: 'Abbrechen', cls: 'btn-ghost', onClick: SK.app.closeModal },
+    { label: 'Übernehmen', cls: 'btn-accent', onClick: function () {
+        const ziel = parseFloat(document.getElementById('m-betrag').value);
+        if (isNaN(ziel)) { SK.ui.toast('Bitte einen Betrag eingeben', true); return; }
+        SK.app.applyAdjustment(ziel, aktuell, c.restTage);
+        SK.app.closeModal();
+      } }
+  ]);
+};
+
+/* Traegt die noetige Korrektur-Buchung ein, damit "heute noch verfuegbar"
+   auf den gewuenschten Wert springt UND sich das ab sofort wieder ganz
+   normal ueber die Resttage der Periode fortschreibt. */
+SK.app.applyAdjustment = function (ziel, aktuell, restTage) {
+  const delta = Math.round(restTage * (ziel - aktuell) * 100) / 100;
+  if (Math.abs(delta) < 0.01) { SK.ui.toast('Keine Änderung nötig'); return; }
+  if (delta > 0) {
+    SK.state.entries.push({ id: SK.uid(), datum: SK.dateKey(), betrag: delta, typ: 'einnahme', notiz: 'Betrag angepasst' });
+  } else {
+    const cat = SK.state.categories.find(function (c) { return c.id === 'sonstiges'; }) || SK.state.categories[0];
+    SK.state.entries.push({ id: SK.uid(), datum: SK.dateKey(), betrag: Math.abs(delta), typ: 'ausgabe', kategorie: cat ? cat.id : 'sonstiges', notiz: 'Betrag angepasst' });
+  }
+  SK.app.refresh();
+  SK.ui.toast('Betrag angepasst');
+  SK.app.haptic();
+  SK.app.pulseHero();
+};
+
 /* =====================================================================
    GENERISCHES MODAL (Ziele / Abos / Einzahlung)
    ===================================================================== */
@@ -590,6 +633,8 @@ SK.app.bindEvents = function () {
   document.getElementById('btn-tagesrest').addEventListener('click', SK.app.tagesrestSichern);
   // Geld hinzufuegen (Einnahme)
   document.getElementById('btn-income').addEventListener('click', SK.app.openIncomeModal);
+  // Betrag anpassen (direkte Korrektur des Tagesbudgets)
+  document.getElementById('btn-adjust').addEventListener('click', SK.app.openAdjustModal);
 
   // Ziele / Abos / Schulden / Bussen / Listen hinzufuegen
   document.getElementById('btn-add-ziel').addEventListener('click', function () { SK.app.openGoalModal(null); });
